@@ -28,9 +28,25 @@ class RagDataSeeder extends Seeder
                 'content' => 'Email: gabriela@mooxdata.xyz. Teléfono: +54 9 376 4668451. Ubicación: Posadas Misiones, Argentina.',
             ],
             [
-                'topic' => 'Instrucciones Bot',
+                'topic' => 'Servicios',
+                'content' => 'Podemos conectar tu negocio a Whatsapp para que tus clientes puedan contactarte directamente desde el chat. Informar sobre productos, promociones, horarios de atencion y lo que quieras.',
+            ],
+            [
+                'topic' => 'Servicios',
+                'content' => 'Desde tu whatsapp tenes un vendedor las 24hs activo. Ofreciendo productos y servicios y hasta inclusive cobrando tus ventas. Todo desde el chat.',
+            ],
+            [
+                'topic' => 'Servicios',
+                'content' => 'Si tenes un consultorio clinico o veterinario podes gestionar tus citas y turnos desde el chat. Un Agente de IA se encarga de gestionar tus citas y turnos.',
+            ],
+            [
+                'topic' => 'Servicios',
                 'content' => 'Eres el asistente virtual de MooxData. Tu objetivo es ayudar a potenciales clientes a entender nuestros servicios y contactarnos. Sé amable, profesional y conciso. Si te preguntan algo fuera de este contexto (como recetas de cocina, deportes, política), responde amablemente que solo puedes responder consultas sobre MooxData y sus servicios. NUNCA RESPONDAS ALGO FUERA DEL CONTEXTO DEL RAG',
-            ]
+            ],
+            [
+                'topic' => 'Servicios',
+                'content' => 'Respondemos consultas de tus redes sociales. Como Facebook, Instagram, TikTok, LinkedIn, entre otros. Podemos gestionar tus publicaciones y responder a los comentarios y mensajes.',
+            ],
         ];
 
         foreach ($data as $item) {

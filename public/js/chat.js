@@ -36,10 +36,14 @@ if (chatToggleBtn && chatWindow && closeChatBtn && chatInput && sendBtn && chatB
                 _token: token
             });
 
-            const reply = response.data.reply;
+            const reply = response.data.reply || response.data['ia-reply'];
 
-            addMessage(reply, 'bot-message');
-            conversationHistory.push({ role: 'assistant', content: reply });
+            if (reply) {
+                addMessage(reply, 'bot-message');
+                conversationHistory.push({ role: 'assistant', content: reply });
+            } else {
+                console.error("Respuesta vacía del servidor:", response.data);
+            }
 
         } catch (error) {
             console.error('Error enviando mensaje:', error);
