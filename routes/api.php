@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BurraController;
+use App\Http\Controllers\WhatsAppWebhookController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,4 +22,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::post('/burra/chat', [BurraController::class, 'getChat'])->middleware('auth:sanctum', 'ability:chat:access');
+// Route::post('/burra/chat', [BurraController::class, 'getChat'])->middleware('auth:sanctum', 'ability:chat:access');
+Route::match(['get', 'post'], '/burra/chat', [WhatsAppWebhookController::class, 'handleWebhook']);
