@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Hash;
 
 Route::get('/', [IndexController::class, 'index']);
 Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat');
-Route::post('/send_mail.php', [IndexController::class, 'sendMail']); 
+Route::post('/send_mail', [IndexController::class, 'sendMail']);
+Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoWhatsapp'])->name('index.panelDemoWhatsapp');
 
 
 // Route::get('/generar-token-burra', function () {

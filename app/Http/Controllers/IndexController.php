@@ -60,4 +60,9 @@ class IndexController extends Controller
 
         return $this->llm->chat($systemMessage, $request);
     }
+
+    public function panelDemoWhatsapp()
+    {
+        return view('layouts.demo.panel-atencion-whatsapp');
+    }
 }
