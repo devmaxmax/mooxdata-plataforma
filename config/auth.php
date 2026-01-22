@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'burra_admin' => [
+            'driver' => 'session',
+            'provider' => 'burra_users',
+        ],
     ],
 
     /*
@@ -64,11 +68,10 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\User::class,
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'burra_users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Burra\BurraAdmin::class,
+        ],
     ],
 
     /*
