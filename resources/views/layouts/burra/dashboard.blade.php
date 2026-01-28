@@ -77,9 +77,17 @@
 
         <div id="view-pedidos" class="view-section active">
             <div class="card">
+                <div
+                    style="padding: 15px; color: #666; font-size: 14px; background: #fff3cd; border-bottom: 1px solid #ffeeba; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                    <i class="ph ph-info" style="vertical-align: middle; margin-right: 5px;"></i>
+                    <strong>Nota:</strong> Cuando aparece la leyenda <span class="badge"
+                        style="background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; display:inline-block; padding: 2px 6px; font-size: 11px;">FUDO</span>,
+                    indica que el pedido fue aprobado y enviado al sistema.
+                </div>
                 <table>
                     <thead>
                         <tr>
+                            <th>Fecha</th>
                             <th>N° Pedido</th>
                             <th>Cliente</th>
                             <th>Detalle (Productos)</th>
@@ -100,8 +108,15 @@
                                 </td>
                                 <td>
                                     <span class="badge {{ $order->status === 'paid' ? 'paid' : 'pending' }}">
-                                        {{ $order->status === 'paid' ? 'Pagado' : ($order->status === 'pending' ? 'Pendiente' : $order->status) }}
+                                        {{ $order->status === 'paid' ? 'Pagado' : ($order->status === 'pending_payment' ? 'Esp. Pago' : ($order->status === 'payment_review' ? 'Revisión' : $order->status)) }}
                                     </span>
+                                    @if ($order->payment_receipt)
+                                        <br>
+                                        <a href="{{ asset($order->payment_receipt) }}" target="_blank"
+                                            style="font-size: 11px; color: blue; text-decoration: underline;">
+                                            <i class="ph ph-file-text"></i> Ver Comprobante
+                                        </a>
+                                    @endif
                                 </td>
                                 <td style="text-align: right;">
                                     <button class="btn-action btn-cancel" onclick="cancelOrder('{{ $order->id }}')">
@@ -180,6 +195,7 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Imagen</th>
                             <th>Nombre</th>
                             <th style="text-align: right;">Acciones</th>
                         </tr>
@@ -192,6 +208,40 @@
         </div>
 
         <div id="view-whatsapp" class="view-section">
+            <div
+                style="display: flex; height: calc(100vh - 140px); background: #fff; border-radius: 16px; overflow: hidden; border: 2px solid var(--border-light);">
+                <!-- Sidebar -->
+                <div
+                    style="width: 320px; border-right: 1px solid var(--border-light); background: #fff; display: flex; flex-direction: column;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-light); background: #fdfbfb;">
+                        <h3 style="font-size: 16px; color: var(--primary-dark); font-weight: 700;">Conversaciones</h3>
+                    </div>
+                    <div id="whatsapp-chat-list" style="flex: 1; overflow-y: auto;">
+                        <div style="padding: 20px; text-align: center; color: var(--text-light);">Cargando chats...
+                        </div>
+                    </div>
+                </div>
+                <!-- Chat Window -->
+                <div style="flex: 1; display: flex; flex-direction: column; background: #e5ddd5;">
+                    <div id="whatsapp-header"
+                        style="height: 60px; background: #f0f2f5; padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid #d1d7db; font-weight: 600; color: #54656f;">
+                        Selecciona un chat para ver el historial
+                    </div>
+                    <div id="whatsapp-messages"
+                        style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Messages render here -->
+                    </div>
+                    <div
+                        style="padding: 10px; background: #f0f2f5; border-top: 1px solid #d1d7db; display: flex; gap: 10px;">
+                        <input type="text" id="whatsapp-input" placeholder="Escribe un mensaje..."
+                            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc; outline: none;">
+                        <button onclick="sendWhatsAppMessage()"
+                            style="background: #00a884; color: white; border: none; padding: 0 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                            <i class="ph ph-paper-plane-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -256,7 +306,8 @@
                 <h3 class="modal-title" id="catModalTitle">Agregar Nueva Categoría</h3>
                 <i class="ph ph-x modal-close" onclick="toggleCategoryModal(false)"></i>
             </div>
-            <form id="categoryForm" method="POST" action="{{ route('burra.categories.store') }}">
+            <form id="categoryForm" method="POST" action="{{ route('burra.categories.store') }}"
+                enctype="multipart/form-data">
                 @csrf
                 <div id="catMethodField"></div>
                 <input type="hidden" id="catId" name="category_id">
@@ -265,6 +316,13 @@
                     <label class="form-label">Nombre</label>
                     <input type="text" class="form-input" id="catName" name="name"
                         placeholder="Ej: Bebidas" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Imagen</label>
+                    <input type="file" class="form-input" id="catImage" name="image" accept="image/*"
+                        style="height: auto;" onchange="previewImage(this)">
+                    <div id="currentCatImage" style="margin-top: 10px; text-align: center;"></div>
                 </div>
 
                 <div class="modal-footer">

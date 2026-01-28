@@ -194,13 +194,13 @@ class BurraController extends Controller
     {
         $products = BurraProduct::with('category')->get();
         $categories = BurraCategory::all();
-        $orders = BurraOrder::with('items')->where('status', '!=', 'completed')->latest()->get();
+        $orders = BurraOrder::with('items')->latest()->get();
         return view('layouts.burra.dashboard', compact('products', 'categories', 'orders'));
     }
 
     public function getOrders()
     {
-        $orders = BurraOrder::with('items')->where('status', '!=', 'completed')->latest()->get();
+        $orders = BurraOrder::with('items')->latest()->get();
         return response()->json($orders);
     }
 
@@ -209,6 +209,13 @@ class BurraController extends Controller
         $order = BurraOrder::findOrFail($id);
         $order->status = $request->status;
         $order->save();
+        return response()->json(['success' => true]);
+    }
+
+    public function destroyOrder($id)
+    {
+        $order = BurraOrder::findOrFail($id);
+        $order->delete();
         return response()->json(['success' => true]);
     }
 
@@ -276,7 +283,15 @@ class BurraController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'image' => 'nullable|image|max:2048', // Max 2MB
         ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('burra/images'), $filename);
+            $validated['image'] = $filename;
+        }
 
         BurraCategory::create($validated);
 
@@ -291,7 +306,20 @@ class BurraController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'image' => 'nullable|image|max:2048',
         ]);
+
+        if ($request->hasFile('image')) {
+            // Delete old image if exists (optional, but good practice)
+            if ($category->image && file_exists(public_path('burra/images/' . $category->image))) {
+                @unlink(public_path('burra/images/' . $category->image));
+            }
+
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('burra/images'), $filename);
+            $validated['image'] = $filename;
+        }
 
         $category->update($validated);
 
@@ -316,6 +344,75 @@ class BurraController extends Controller
         return redirect()->route('burra.dashboard')
             ->with('success', 'Categoría eliminada correctamente')
             ->with('view', 'categorias');
+    }
+
+    public function getWhatsAppChats()
+    {
+        // Obtener la última interacción de cada número
+        $chats = \App\Models\Burra\BurraWhatsAppMessage::select('phone_number')
+            ->selectRaw('MAX(created_at) as last_activity')
+            ->groupBy('phone_number')
+            ->orderByDesc('last_activity')
+            ->get();
+            
+        // Podríamos enriquecer esto con el último mensaje, pero por rendimiento lo cargamos simple
+        return response()->json($chats);
+    }
+
+    public function getWhatsAppMessages($phone)
+    {
+        $messages = \App\Models\Burra\BurraWhatsAppMessage::where('phone_number', $phone)
+            ->orderBy('created_at', 'asc') // Cronológico para el chat
+            ->get();
+            
+        return response()->json($messages);
+    }
+
+    public function sendWhatsAppMessage(Request $request) 
+    {
+        $request->validate([
+            'phone' => 'required',
+            'message' => 'required'
+        ]);
+
+        $phone = $request->phone;
+        $message = $request->message;
+
+        // 1. Enviar a Meta
+        $token = env('META_WHATSAPP_TOKEN');
+        $phoneId = env('META_PHONE_ID');
+        $version = 'v21.0'; 
+        $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withToken($token)->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $phone,
+                'type' => 'text',
+                'text' => ['body' => $message]
+            ]);
+
+            if ($response->failed()) {
+                \Illuminate\Support\Facades\Log::error('Meta API Error: ' . $response->body());
+                return response()->json(['error' => 'Error enviando mensaje a Meta'], 500);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
+            return response()->json(['error' => 'Excepción de servidor'], 500);
+        }
+
+        // 2. Guardar en DB
+        \App\Models\Burra\BurraWhatsAppMessage::create([
+            'phone_number' => $phone,
+            'message' => $message,
+            'type' => 'outgoing',
+            'status' => 'sent_manual'
+        ]);
+
+        // 3. SUSPENDER BOT (Intervención Manual) por 24hs
+        \Illuminate\Support\Facades\Cache::put('burra_bot_suspended_' . $phone, true, now()->addHours(24));
+
+        return response()->json(['success' => true]);
     }
 
     public function logout(Request $request)

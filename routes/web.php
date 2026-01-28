@@ -46,6 +46,10 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
         Route::delete('/panel/categories/{id}', [BurraController::class, 'destroyCategory'])->name('categories.destroy');
     Route::get('/panel/api/orders', [BurraController::class, 'getOrders'])->name('orders.api');
     Route::post('/panel/api/orders/{id}/status', [BurraController::class, 'updateOrderStatus'])->name('orders.status');
+    Route::delete('/panel/api/orders/{id}', [BurraController::class, 'destroyOrder'])->name('orders.destroy');
+    Route::get('/panel/api/whatsapp/chats', [BurraController::class, 'getWhatsAppChats'])->name('whatsapp.chats');
+    Route::get('/panel/api/whatsapp/messages/{phone}', [BurraController::class, 'getWhatsAppMessages'])->name('whatsapp.messages');
+    Route::post('/panel/api/whatsapp/send', [BurraController::class, 'sendWhatsAppMessage'])->name('whatsapp.send');
         
         Route::get('assets/{type}/{filename}', [BurraAssetsController::class, 'serve'])
          ->where('type', 'css|js|images|img') // Permitimos css, js e imágenes
