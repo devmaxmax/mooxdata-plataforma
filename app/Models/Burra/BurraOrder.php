@@ -9,7 +9,7 @@ class BurraOrder extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['table_number', 'status', 'total'];
+    protected $fillable = ['table_number', 'status', 'total', 'customer_name', 'customer_address', 'customer_phone', 'customer_note', 'payment_method'];
 
     public function items()
     {

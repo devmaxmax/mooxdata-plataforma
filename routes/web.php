@@ -51,8 +51,9 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
          ->where('type', 'css|js|images|img') // Permitimos css, js e imágenes
          ->name('assets');
     });
-});
 
+    Route::post('/pedido', [BurraController::class, 'procesarPedido'])->name('pedido');
+});
 
 // Route::get('/generar-token-burra', function () {
 //     $user = User::find(1);

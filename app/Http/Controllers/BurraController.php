@@ -11,6 +11,7 @@ use App\Models\Burra\BurraProduct;
 use App\Models\Burra\BurraCategory;
 use App\Models\Burra\BurraOrder;
 use App\Models\Burra\BurraOrderItem;
+use Illuminate\Support\Facades\Log;
 
 class BurraController extends Controller
 {
@@ -33,16 +34,16 @@ class BurraController extends Controller
             ]);
         }
 
-        $clientId = $request->header('X-Guest-ID') ?? $request->ip();
-        $cacheKey = 'burra_last_chat_' . $clientId;
+        // $clientId = $request->header('X-Guest-ID') ?? $request->ip();
+        // $cacheKey = 'burra_last_chat_' . $clientId;
 
-        if (Cache::has($cacheKey)) {
-            return response()->json([
-                'reply' => '',
-            ]);
-        }
+        // if (Cache::has($cacheKey)) {
+        //     return response()->json([
+        //         'reply' => '',
+        //     ]);
+        // }
 
-        Cache::put($cacheKey, $now->toDateTimeString(), now()->addHours(12));
+        // Cache::put($cacheKey, $now->toDateTimeString(), now()->addHours(12));
 
         $systemMessage = [
             'role' => 'system',
@@ -54,14 +55,114 @@ class BurraController extends Controller
 
     public function procesarPedido(Request $request)
     {
-        
+        try {
+            $validated = $request->validate([
+                'pedido.productos' => 'required|array',
+                'pedido.preguntas' => 'nullable|array',
+            ]);
+
+            $pedidoData = $request->input('pedido');
+            $productos = $pedidoData['productos'];
+            $preguntas = collect($pedidoData['preguntas'] ?? []);
+
+            $nombre = $preguntas->where('pregunta', 'Nombre y Apellido(*)')->first()['respuesta'] 
+                     ?? $preguntas->where('pregunta', 'Nombre*')->first()['respuesta'] 
+                     ?? 'Sin Nombre';
+
+            $direccion = $preguntas->where('pregunta', 'Dirección(*)')->first()['respuesta'] 
+                        ?? $preguntas->where('pregunta', 'Dirección')->first()['respuesta'] 
+                        ?? '';
+
+            $observacion = $preguntas->where('pregunta', '¿Algun dato adicional sobre el pedido o su dirección?:*')->first()['respuesta'] 
+                          ?? $preguntas->where('pregunta', 'Piso / Dpto')->first()['respuesta'] 
+                          ?? '';
+            
+            $metodoPago = $preguntas->where('pregunta', 'Forma de pago(*):')->first()['respuesta'] 
+                         ?? $preguntas->where('pregunta', '¿Cómo abonás?')->first()['respuesta'] 
+                         ?? '';
+            $telefono = $pedidoData['whatsapp'] ?? null;
+
+            $total = $pedidoData['precio_final'] ?? 0;
+
+            $order = BurraOrder::create([
+                'table_number' => 'WEB',
+                'status' => 'pending',
+                'total' => $total,
+                'customer_name' => $nombre,
+                'customer_address' => $direccion,
+                'customer_phone' => $telefono,
+                'customer_note' => $observacion,
+                'payment_method' => $metodoPago
+            ]);
+
+            foreach ($productos as $producto) {
+                BurraOrderItem::create([
+                    'order_id' => $order->id,
+                    'product_id' => $producto['id'],
+                    'product_name' => $producto['nombre'],
+                    'quantity' => $producto['cantidad'],
+                    'price' => $producto['precio'],
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'order_id' => $order->id
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating order: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error al guardar el pedido'], 500);
+        }
     }  
     
     /*******Administracion de web ************/
 
     public function index()
     {
-        return view('layouts.burra.index');
+        $products = BurraProduct::with('category')->where('is_active', true)->get();
+        $categories = BurraCategory::all();
+
+        $productsJson = $products->map(function ($product) {
+            return [
+                'id' => $product->id,
+                'nombre' => $product->name,
+                'descripcion' => $product->description,
+                'variedad' => null,
+                'precio' => $product->price,
+                'precio_mostrar' => number_format($product->price, 0, ',', '.'),
+                'precioanterior' => '',
+                'precioanterior_mostrar' => '0',
+                'descuento' => 0,
+                'categoria' => $product->category ? $product->category->name : '',
+                'subcategoria' => '',
+                'categoriaicono' => '',
+                'categoriaimagendefondo' => '',
+                'ocultar' => '',
+                'stock' => '',
+                'codigo' => '',
+                'minimo' => 1,
+                'maximo' => 999999,
+                'step' => 1,
+                'imagen' => '',
+                'imagen_tamano' => 'CHICA',
+                'imagenes' => [],
+                'tiene_precios_diferentes' => false,
+                'se_puede_pedir' => true,
+                'variedades' => $product->variable ? json_decode($product->variable) : [],
+            ];
+        });
+
+        $categoriesJson = $categories->map(function ($category) {
+            return [
+                'nro' => $category->id,
+                'categoria' => $category->name,
+                'imagen_fondo' => '',
+                'icono' => $category->image,
+            ];
+        });
+
+        return view('layouts.burra.index', compact('products', 'categories', 'productsJson', 'categoriesJson'));
     }
 
     public function showLoginForm()
