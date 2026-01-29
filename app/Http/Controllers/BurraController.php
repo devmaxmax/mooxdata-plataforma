@@ -11,6 +11,8 @@ use App\Models\Burra\BurraProduct;
 use App\Models\Burra\BurraCategory;
 use App\Models\Burra\BurraOrder;
 use App\Models\Burra\BurraOrderItem;
+use App\Models\Burra\BurraWhatsAppMessage;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class BurraController extends Controller
@@ -223,6 +225,7 @@ class BurraController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code_fuda' => 'nullable|numeric',
             'category_id' => 'required|exists:burra_category,id',
             'description' => 'required|string',
             'variable' => 'nullable|string',
@@ -242,6 +245,7 @@ class BurraController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'code_fuda' => 'nullable|numeric',
             'category_id' => 'required|exists:burra_category,id',
             'description' => 'required|string',
             'variable' => 'nullable|string',
@@ -302,7 +306,7 @@ class BurraController extends Controller
 
     public function updateCategory(Request $request, $id)
     {
-        $category = \App\Models\Burra\BurraCategory::findOrFail($id);
+        $category = BurraCategory::findOrFail($id);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -330,7 +334,7 @@ class BurraController extends Controller
 
     public function destroyCategory($id)
     {
-        $category = \App\Models\Burra\BurraCategory::findOrFail($id);
+        $category = BurraCategory::findOrFail($id);
 
         // Check if category has products
         if ($category->products()->count() > 0) {
@@ -349,7 +353,7 @@ class BurraController extends Controller
     public function getWhatsAppChats()
     {
         // Obtener la última interacción de cada número
-        $chats = \App\Models\Burra\BurraWhatsAppMessage::select('phone_number')
+        $chats = BurraWhatsAppMessage::select('phone_number')
             ->selectRaw('MAX(created_at) as last_activity')
             ->groupBy('phone_number')
             ->orderByDesc('last_activity')
@@ -361,7 +365,7 @@ class BurraController extends Controller
 
     public function getWhatsAppMessages($phone)
     {
-        $messages = \App\Models\Burra\BurraWhatsAppMessage::where('phone_number', $phone)
+        $messages = BurraWhatsAppMessage::where('phone_number', $phone)
             ->orderBy('created_at', 'asc') // Cronológico para el chat
             ->get();
             
@@ -385,7 +389,7 @@ class BurraController extends Controller
         $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
 
         try {
-            $response = \Illuminate\Support\Facades\Http::withToken($token)->post($url, [
+            $response = Http::withToken($token)->post($url, [
                 'messaging_product' => 'whatsapp',
                 'to' => $phone,
                 'type' => 'text',
@@ -393,16 +397,16 @@ class BurraController extends Controller
             ]);
 
             if ($response->failed()) {
-                \Illuminate\Support\Facades\Log::error('Meta API Error: ' . $response->body());
+                Log::error('Meta API Error: ' . $response->body());
                 return response()->json(['error' => 'Error enviando mensaje a Meta'], 500);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
+            Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
             return response()->json(['error' => 'Excepción de servidor'], 500);
         }
 
         // 2. Guardar en DB
-        \App\Models\Burra\BurraWhatsAppMessage::create([
+        BurraWhatsAppMessage::create([
             'phone_number' => $phone,
             'message' => $message,
             'type' => 'outgoing',
@@ -410,7 +414,7 @@ class BurraController extends Controller
         ]);
 
         // 3. SUSPENDER BOT (Intervención Manual) por 24hs
-        \Illuminate\Support\Facades\Cache::put('burra_bot_suspended_' . $phone, true, now()->addHours(24));
+        Cache::put('burra_bot_suspended_' . $phone, true, now()->addHours(24));
 
         return response()->json(['success' => true]);
     }

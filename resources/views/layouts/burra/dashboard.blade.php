@@ -98,6 +98,9 @@
                     <tbody id="table-orders">
                         @foreach ($orders as $order)
                             <tr id="order-{{ $order->id }}">
+                                <td style="font-size: 13px; color: var(--text-light); white-space: nowrap;">
+                                    {{ $order->created_at->format('d/m/Y H:i') }}
+                                </td>
                                 <td style="font-weight: 700; color: var(--primary-dark);">#{{ $order->table_number }}
                                 </td>
                                 <td style="font-weight: 600;">Mesa {{ $order->table_number }}</td>
@@ -141,6 +144,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Código FUDA</th>
                             <th>Tipo</th>
                             <th>Nombre</th>
                             <th>Descripción</th>
@@ -153,6 +157,7 @@
                     <tbody id="table-products">
                         @foreach ($products as $product)
                             <tr>
+                                <td>{{ $product->code_fuda }}</td>
                                 <td><span class="product-type">{{ $product->category->name ?? 'Sin categoría' }}</span>
                                 </td>
                                 <td style="font-weight: 700;">{{ $product->name }}</td>
@@ -256,6 +261,12 @@
                 @csrf
                 <div id="methodField"></div>
                 <input type="hidden" id="productId" name="product_id">
+
+                <div class="form-group">
+                    <label class="form-label">Código Fudo (Opcional)</label>
+                    <input type="number" class="form-input" id="productCodeFuda" name="code_fuda"
+                        placeholder="Ej: 1024">
+                </div>
 
                 <div class="form-group">
                     <label class="form-label">Tipo de Producto (Categoría)</label>

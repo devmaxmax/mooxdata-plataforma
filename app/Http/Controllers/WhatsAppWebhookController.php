@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Burra\BurraOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -20,6 +21,8 @@ class WhatsAppWebhookController extends Controller
 
     public function handleWebhook(Request $request)
     {
+        Log::info("Webhook hit: " . $request->method() . " - " . $request->fullUrl());
+        Log::info("Payload: " . json_encode($request->all()));
         // ---------------------------------------------------------
         // FASE 1: VERIFICACIÓN (GET)
         // ---------------------------------------------------------
@@ -39,21 +42,27 @@ class WhatsAppWebhookController extends Controller
         // FASE 2: RECEPCIÓN DE MENSAJES (POST)
         // ---------------------------------------------------------
         if ($request->isMethod('post')) {
-            $entry = $request->input('entry.0.changes.0.value.messages.0');
-            if (!$entry) return response('EVENT_RECEIVED', 200);
+            $payload = $request->json()->all();
+
+            $entry = $payload['entry'][0]['changes'][0]['value']['messages'][0] ?? null;
+
+            if (!$entry) {
+                Log::error('Payload inválido', ['payload' => $payload]);
+                return response('EVENT_RECEIVED', 200);
+            }
 
             $userPhone = $entry['from']; 
             $wpId = $entry['id'];
             $msgType = $entry['type'] ?? 'text'; // text, image, document, etc.
 
             // 0. Limpieza: Eliminar pedidos pendientes de pago expirados (> 30 min)
-            \App\Models\Burra\BurraOrder::where('customer_phone', $userPhone)
+            BurraOrder::where('customer_phone', $userPhone)
                 ->where('status', 'pending_payment')
                 ->where('created_at', '<', Carbon::now()->subMinutes(30))
                 ->delete();
 
             // 1. Verificar si hay un pedido activo esperando pago o revisión
-            $activeOrder = \App\Models\Burra\BurraOrder::where('customer_phone', $userPhone)
+            $activeOrder = BurraOrder::where('customer_phone', $userPhone)
                 ->whereIn('status', ['pending_payment', 'payment_review'])
                 ->latest()
                 ->first();

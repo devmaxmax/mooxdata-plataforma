@@ -10,6 +10,7 @@ class BurraProduct extends Model
     use HasFactory;
 
     protected $fillable = [
+        'code_fuda',
         'name',
         'description',
         'variable',
