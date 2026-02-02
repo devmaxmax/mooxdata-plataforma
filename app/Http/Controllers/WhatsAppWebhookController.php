@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Burra\BurraOrder;
+use App\Models\Burra\BurraOrderItem;
+use App\Models\Burra\BurraProduct;
+use App\Models\Burra\BurraWhatsAppMessage;
+use App\Services\llm\Deepseek;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Cache;
@@ -14,7 +18,7 @@ class WhatsAppWebhookController extends Controller
 
     private $llm;
 
-    public function __construct(\App\Services\llm\Deepseek $llm)
+    public function __construct(Deepseek $llm)
     {
         $this->llm = $llm;
     }
@@ -43,6 +47,8 @@ class WhatsAppWebhookController extends Controller
         // ---------------------------------------------------------
         if ($request->isMethod('post')) {
             $payload = $request->json()->all();
+            
+
 
             $entry = $payload['entry'][0]['changes'][0]['value']['messages'][0] ?? null;
 
@@ -52,14 +58,20 @@ class WhatsAppWebhookController extends Controller
             }
 
             $userPhone = $entry['from']; 
+
+            // Parche de prueba - hijo de puta
+            if ($userPhone == '5493764999618') {
+                $userPhone = '54376154999618';
+            }
+
             $wpId = $entry['id'];
             $msgType = $entry['type'] ?? 'text'; // text, image, document, etc.
 
-            // 0. Limpieza: Eliminar pedidos pendientes de pago expirados (> 30 min)
+            // 0. Limpieza: Cancelar pedidos pendientes de pago expirados (> 30 min)
             BurraOrder::where('customer_phone', $userPhone)
                 ->where('status', 'pending_payment')
                 ->where('created_at', '<', Carbon::now()->subMinutes(30))
-                ->delete();
+                ->update(['status' => 'cancelled']);
 
             // 1. Verificar si hay un pedido activo esperando pago o revisión
             $activeOrder = BurraOrder::where('customer_phone', $userPhone)
@@ -116,7 +128,7 @@ class WhatsAppWebhookController extends Controller
             }
 
             // Guardar Mensaje Entrante
-            \App\Models\Burra\BurraWhatsAppMessage::create([
+            BurraWhatsAppMessage::create([
                 'phone_number' => $userPhone,
                 'message' => $userMessage,
                 'type' => 'incoming',
@@ -125,58 +137,140 @@ class WhatsAppWebhookController extends Controller
             ]);
 
             // Verificar Horario
-            $now = Carbon::now('America/Argentina/Buenos_Aires');
-            $startTime = $now->copy()->setTime(20, 0, 0);
-            $endTime = $now->copy()->setTime(23, 50, 0);
+            // $now = Carbon::now('America/Argentina/Buenos_Aires');
+            // $startTime = $now->copy()->setTime(20, 0, 0);
+            // $endTime = $now->copy()->setTime(23, 50, 0);
 
-            if (!$now->between($startTime, $endTime)) {
-                 // Fuera de horario
-                 return response('EVENT_RECEIVED', 200);
-            }
+            // if (!$now->between($startTime, $endTime)) {
+            //      // Fuera de horario
+            //      // return response('EVENT_RECEIVED', 200); // DESHABILITADO PARA TESTING
+            // }
 
             // Verificar Suspensión Manual
             if (Cache::has('burra_bot_suspended_' . $userPhone)) {
                 return response('EVENT_RECEIVED', 200);
             }
 
+            // 3.5. Detección de Saludo / Menu (ByPass LLM)
+            $isGreeting = preg_match('/^(hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|menu|carta|pedido|pedir|quiero pedir)/i', trim($userMessage));
+            $isShort = strlen($userMessage) < 20;
+
+            if ($isGreeting && $isShort) {
+                $welcomeMsg = "¡Hola! Somos BURRA 🌶️\n\nPodés realizar tu pedido por acá 👇\n🔗 https://mooxdata.xyz/app/burracomidamexicana/\n\n💸 Si querés enviarnos pesos a través de Mercado Pago:\nAlias: burra.comidamexicana\nCVU: 0000003100019529993791\nNombre: Maria Laura Escalada\n\n¡Gracias por elegirnos!";
+                
+                $this->sendWhatsAppMessage($userPhone, $welcomeMsg);
+                $this->storeOutgoing($userPhone, $welcomeMsg);
+                
+                return response('EVENT_RECEIVED', 200);
+            }
+
             // 4. Lógica del Bot con IA
-            $products = \App\Models\Burra\BurraProduct::where('is_active', true)->get();
-            $menuText = $products->map(function($p) {
-                return "- {$p->name} ($ {$p->price})";
-            })->implode("\n");
+            $allProducts = BurraProduct::with('category')->where('is_active', true)->get();
+            $grouped = $allProducts->groupBy(function($item) {
+                return $item->category ? $item->category->name : 'Varios';
+            });
 
-            $systemPrompt = "Eres 'BurroBot', el camarero virtual de Burra Comida Mexicana.
-            TU OBJETIVO: Tomar el pedido del cliente amablemente.
+            // A. Detección de Selección de Categoría
+            // Verificamos si el mensaje del usuario COINCIDE con alguna categoría
+            $userMsgClean = trim(strtolower($userMessage));
+            $matchedCategory = null;
+            $matchedProducts = null;
+
+            foreach ($grouped as $catName => $items) {
+                // Evitamos falsos positivos con palabras cortas como "si", "no", "ok" dentro de nombres de categorías
+                // Ejemplo: "si" dentro de "Fusión"
+                if (strlen($userMsgClean) < 3) continue;
+
+                if (str_contains(strtolower($catName), $userMsgClean) || str_contains($userMsgClean, strtolower($catName))) {
+                    $matchedCategory = $catName;
+                    $matchedProducts = $items;
+                    break;
+                }
+            }
+
+            if ($matchedCategory) {
+                $categoryMenu = "*{$matchedCategory}*\n";
+                foreach ($matchedProducts as $p) {
+                    $categoryMenu .= "- {$p->name} ($ {$p->price})\n";
+                }
+                
+                $reply = "¡Excelente elección! Aquí tienes las opciones de *{$matchedCategory}*:\n\n{$categoryMenu}\n✍️ Escríbeme qué te gustaría pedir (ej. 'Quiero 2 Tacos de Pollo').";
+                $this->sendWhatsAppMessage($userPhone, $reply);
+                $this->storeOutgoing($userPhone, $reply);
+                return response('EVENT_RECEIVED', 200);
+            }
+
+            // B. Mostrar Lista de Categorías (Si piden Menú o Saludan)
+            // Ya tenemos $isGreeting detectado arriba para el primer mensaje, pero aquí reforzamos
+            // si el usuario pide "ver menu" o "que tenes" más adelante.
+            // Agregamos: comer, hambre, ver, carta
+            $isMenuRequest = preg_match('/(menu|carta|que tenes|que tienes|opciones|comida|comer|hambre|ver)/i', $userMsgClean);
+
+            if ($isMenuRequest) {
+                $catList = "";
+                foreach ($grouped as $catName => $items) {
+                    $catList .= "- {$catName}\n";
+                }
+
+                $reply = "¡Tenemos un menú bien rico! 🌮\nTe paso las categorías para que elijas:\n\n{$catList}\n👇 Escribí el nombre de una categoría para ver sus platos (ej. 'Entradas').\n\n🌐 O pedí por la web: https://mooxdata.xyz/app/burracomidamexicana/";
+                $this->sendWhatsAppMessage($userPhone, $reply);
+                $this->storeOutgoing($userPhone, $reply);
+                return response('EVENT_RECEIVED', 200);
+            }
+
+            // C. Fallback: Prompt del Sistema para recibir pedidos directos
+            // Solo damos contexto de productos, NO el menú completo para no saturar tokens ni texto
+            // Le damos los nombres de productos para que entienda qué piden.
+            $productsContext = $allProducts->map(function($p) { return $p->name . ' ($' . $p->price . ')'; })->implode(", ");
             
-            MENÚ DISPONIBLE:
-            {$menuText}
+            // Check for existing pending orders for context
+            $existingOrder = BurraOrder::where('customer_phone', $userPhone)
+                ->whereIn('status', ['pending', 'pending_payment', 'payment_review'])
+                ->latest()
+                ->first();
+                
+            $orderContext = "";
+            if ($existingOrder) {
+                $orderContext = "EL USUARIO YA TIENE UN PEDIDO REGISTRADO (#{$existingOrder->id}) CON ESTADO: {$existingOrder->status}. Si te da su nombre, avísale que ya tiene ese pedido en curso.";
+            }
 
-            REGLAS:
-            1. Sé amable y breve (estilo WhatsApp).
-            2. OBLIGATORIO: Debes pedir 'Nombre y Apellido' y 'Dirección exacta'. No confirmes el pedido sin estos datos.
-            3. Identifica: Productos exactos, Cantidad, Forma de pago (Efectivo/Transferencia).
-            4. Si falta info, pregúntala.
-            5. SI EL PEDIDO ESTÁ LISTO PARA CONFIRMAR:
-               Muestra el resumen al usuario y pregúntale si confirma.
+            $systemPrompt = "Eres 'BurroBot', camarero de Burra Comida Mexicana.
+            TU OBJETIVO: Tomar el pedido.
             
-            6. SI EL USUARIO DICE 'SI' o 'CONFIRMO' (luego de ver el resumen):
-               Tu respuesta DEBE SER UNICAMENTE un JSON con este formato:
-               
-               {
-                 \"order_confirmed\": true,
-                 \"customer_name\": \"Nombre del Cliente\",
-                 \"address\": \"Dirección Completa\",
-                 \"payment_method\": \"Transferencia (o Efectivo)\",
-                 \"items\": [
-                    {\"name\": \"Nombre exacto producto\", \"quantity\": 1, \"price\": 1000}
-                 ]
-               }
+            INSTRUCCIONES CLAVE:
+            1. Si el usuario te dicta un pedido, procésalo.
+            2. Siempre recuerda que pueden pedir por la web: https://mooxdata.xyz/app/burracomidamexicana/
+            3. Si no entiendes qué quieren, ofréceles ver el menú escribiendo 'Menu'.
+            4. {$orderContext}
 
-            7. Si NO está confirmado, responde normalmente como texto al usuario.
+            PRODUCTOS DISPONIBLES (Contexto):
+            {$productsContext}
+
+            REGLAS DE TOMA DE PEDIDO:
+            1. Pide Nombre, Apellido y Dirección Exacta.
+            2. Confirma items y total.
+            3. Forma de pago (Efectivo/Transferencia).
+            4. Cuando esté todo listo, muestra resumen y pide confirmación (SI/CONFIRMO).
+            
+            5. CASO FINAL - CONFIRMACIÓN:
+            Si el usuario confirma (SI/CONFIRMO), NO preguntes si quiere algo más.
+            En su lugar, RESPONDE ÚNICAMENTE con un JSON válido siguiendo este formato exacto:
+            
+            {
+                \"order_confirmed\": true,
+                \"customer_name\": \"Nombre completo\",
+                \"address\": \"Dirección\",
+                \"payment_method\": \"Efectivo\",
+                \"items\": [
+                    {\"name\": \"Nombre Producto\", \"quantity\": 1, \"price\": 1000}
+                ]
+            }
+
+            IMPORTANTE: TU RESPUESTA DEBE SER SOLO EL JSON. NO ESCRIBAS NADA MÁS.
             ";
 
             // Historial
-            $history = \App\Models\Burra\BurraWhatsAppMessage::where('phone_number', $userPhone)
+            $history = BurraWhatsAppMessage::where('phone_number', $userPhone)
                 ->orderBy('created_at', 'desc')
                 ->take(6)
                 ->get()
@@ -190,8 +284,18 @@ class WhatsAppWebhookController extends Controller
             $response = $this->llm->chat(['role' => 'system', 'content' => $systemPrompt], $fakedRequest);
             $botReply = $response->getData()->reply;
 
+
+
             // Procesar Respuesta
-            $orderData = json_decode($botReply, true);
+            // Limpiar Markdown si el bot responde con ```json ... ```
+            $cleanReply = $botReply;
+            if (preg_match('/```json\s*(\{.*\})\s*```/s', $botReply, $matches)) {
+                $cleanReply = $matches[1];
+            } elseif (preg_match('/```\s*(\{.*\})\s*```/s', $botReply, $matches)) {
+                $cleanReply = $matches[1];
+            }
+
+            $orderData = json_decode($cleanReply, true);
 
             if ($orderData && isset($orderData['order_confirmed']) && $orderData['order_confirmed'] === true) {
                 // Crear Pedido
@@ -200,7 +304,7 @@ class WhatsAppWebhookController extends Controller
                     $total += ($item['price'] * $item['quantity']);
                 }
 
-                $order = \App\Models\Burra\BurraOrder::create([
+                $order = BurraOrder::create([
                     'table_number' => 'WHATSAPP',
                     'status' => 'pending_payment', // Estado inicial esperando pago
                     'total' => $total,
@@ -212,7 +316,7 @@ class WhatsAppWebhookController extends Controller
                 ]);
 
                 foreach ($orderData['items'] as $item) {
-                    \App\Models\Burra\BurraOrderItem::create([
+                    BurraOrderItem::create([
                         'order_id' => $order->id,
                         'product_name' => $item['name'],
                         'quantity' => $item['quantity'],
@@ -220,7 +324,7 @@ class WhatsAppWebhookController extends Controller
                     ]);
                 }
 
-                // Mensaje Final con Instrucciones de Pago
+                // Mensaje Final CON Instrucciones
                 $finalMsg = "📝 *Pedido Registrado #{$order->id}*\n\n";
                 $finalMsg .= "👤 *Nombre:* {$orderData['customer_name']}\n";
                 $finalMsg .= "📍 *Dirección:* {$orderData['address']}\n";
@@ -229,7 +333,8 @@ class WhatsAppWebhookController extends Controller
                 $finalMsg .= "🏦 *Alias:* burra.comidamexicana\n";
                 $finalMsg .= "💳 *CVU:* 0000003100019529993791\n";
                 $finalMsg .= "👤 *Titular:* Maria Laura Escalada\n\n";
-                $finalMsg .= "⚠️ *IMPORTANTE:* Tenés 30 minutos para enviar el comprobante (foto o PDF) por este medio. Si no, el pedido se cancelará automáticamente.";
+                $finalMsg .= "⚠️ *Esperando confirmación de pago.*\n";
+                $finalMsg .= "Enviá el comprobante por acá. Si no, el pedido se cancelará automáticamente en 30 minutos.";
 
                 $this->sendWhatsAppMessage($userPhone, $finalMsg);
                 $this->storeOutgoing($userPhone, $finalMsg);
@@ -282,7 +387,7 @@ class WhatsAppWebhookController extends Controller
     }
 
     private function storeOutgoing($phone, $msg) {
-        \App\Models\Burra\BurraWhatsAppMessage::create([
+        BurraWhatsAppMessage::create([
             'phone_number' => $phone,
             'message' => $msg,
             'type' => 'outgoing',
@@ -299,14 +404,42 @@ class WhatsAppWebhookController extends Controller
         $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
 
         try {
-            Http::withToken($token)->post($url, [
+            $response = Http::withToken($token)->post($url, [
                 'messaging_product' => 'whatsapp',
                 'to' => $to,
                 'type' => 'text',
                 'text' => ['body' => $messageBody]
             ]);
+
+            Log::info("Meta API Response: " . $response->status() . " - " . $response->body());
+
+
+
+            if ($response->failed()) {
+                Log::error('Error enviando mensaje a Meta: ' . $response->body());
+                // EMERGENCY LOGGING TO DATABASE
+                BurraWhatsAppMessage::create([
+                    'phone_number' => $to,
+                    'message' => "SYSTEM ERROR (Not Sent to user): " . $response->body(),
+                    'type' => 'outgoing',
+                    'status' => 'failed'
+                ]);
+            }
         } catch (\Exception $e) {
             Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
+        }
+    }
+    public function testDb() {
+        try {
+            $msg = \App\Models\Burra\BurraWhatsAppMessage::create([
+                'phone_number' => 'TEST-001',
+                'message' => 'Test de base de datos exitoso ' . date('Y-m-d H:i:s'),
+                'type' => 'outgoing',
+                'status' => 'debug'
+            ]);
+            return response()->json(['success' => true, 'data' => $msg]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()]);
         }
     }
 }

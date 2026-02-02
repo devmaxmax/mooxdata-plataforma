@@ -419,6 +419,16 @@ class BurraController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function resumeBot(Request $request)
+    {
+        $request->validate(['phone' => 'required']);
+        $phone = $request->phone;
+        
+        Cache::forget('burra_bot_suspended_' . $phone);
+
+        return response()->json(['success' => true]);
+    }
+
     public function logout(Request $request)
     {
         Auth::guard('burra_admin')->logout();

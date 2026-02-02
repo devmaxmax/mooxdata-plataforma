@@ -28,7 +28,7 @@ class Deepseek
                     'messages' => $messages,
                     'stream' => false,
                     'temperature' => 0.1,
-                    'max_tokens' => 150,
+                    'max_tokens' => 350,
                     'top_p' => 0.9,
                 ]);
 

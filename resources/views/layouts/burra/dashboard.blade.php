@@ -227,7 +227,7 @@
                     </div>
                 </div>
                 <!-- Chat Window -->
-                <div style="flex: 1; display: flex; flex-direction: column; background: #e5ddd5;">
+                <div style="flex: 1; display: flex; flex-direction: column; background: #e5ddd5; min-width: 0;">
                     <div id="whatsapp-header"
                         style="height: 60px; background: #f0f2f5; padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid #d1d7db; font-weight: 600; color: #54656f;">
                         Selecciona un chat para ver el historial

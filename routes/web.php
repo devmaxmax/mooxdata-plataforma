@@ -6,6 +6,7 @@ use App\Http\Controllers\IndexController;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\BurraAssetsController;
+use Illuminate\Support\Facades\Artisan;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,13 @@ Route::get('/', [IndexController::class, 'index']);
 Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat');
 Route::post('/send_mail', [IndexController::class, 'sendMail']);
 Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoWhatsapp'])->name('index.panelDemoWhatsapp');
+
+// RUTA TEMPORAL PARA LIMPIAR CACHÉ EN SHARED HOSTING
+Route::get('/clear-cache', function() {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    return "Caché de configuración y aplicación eliminada correctamente.";
+});
 
 Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
     Route::get('/', [BurraController::class, 'index'])->name('index');
@@ -50,6 +58,7 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
     Route::get('/panel/api/whatsapp/chats', [BurraController::class, 'getWhatsAppChats'])->name('whatsapp.chats');
     Route::get('/panel/api/whatsapp/messages/{phone}', [BurraController::class, 'getWhatsAppMessages'])->name('whatsapp.messages');
     Route::post('/panel/api/whatsapp/send', [BurraController::class, 'sendWhatsAppMessage'])->name('whatsapp.send');
+    Route::post('/panel/api/whatsapp/resume', [BurraController::class, 'resumeBot'])->name('whatsapp.resume');
         
         Route::get('assets/{type}/{filename}', [BurraAssetsController::class, 'serve'])
          ->where('type', 'css|js|images|img') // Permitimos css, js e imágenes

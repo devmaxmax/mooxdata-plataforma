@@ -325,7 +325,7 @@
     </div>
 
     <!-- https://wa.me/5493764865939 -->
-    <a href="https://wa.me/15551676366" class="whatsapp-floating-button" target="_blank">
+    <a href="https://wa.me/15551679111" class="whatsapp-floating-button" target="_blank">
         <img src="{{ asset('burra/images/whatsapp-icon.svg') }}" width="70">
     </a>
 
