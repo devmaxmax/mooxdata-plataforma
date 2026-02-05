@@ -60,7 +60,9 @@ class WhatsAppWebhookController extends Controller
             $userPhone = $entry['from']; 
 
             // Parche de prueba - hijo de puta
-            if ($userPhone == '5493764999618') {
+            if ($userPhone == '5493764677756') {
+                $userPhone = '54376154677756';
+            } elseif ($userPhone == '5493764999618') {
                 $userPhone = '54376154999618';
             }
 
@@ -235,24 +237,26 @@ class WhatsAppWebhookController extends Controller
             }
 
             $systemPrompt = "Eres 'BurroBot', camarero de Burra Comida Mexicana.
-            TU OBJETIVO: Tomar el pedido.
+            TU OBJETIVO PRIMARIO: EN CADA RESPUESTA DONDE SEA APROPIADO, OFRECE EL LINK DE LA WEB PRIMERO.
             
             INSTRUCCIONES CLAVE:
-            1. Si el usuario te dicta un pedido, procésalo.
-            2. Siempre recuerda que pueden pedir por la web: https://mooxdata.xyz/app/burracomidamexicana/
-            3. Si no entiendes qué quieren, ofréceles ver el menú escribiendo 'Menu'.
+            1. LINK WEB OBLIGATORIO: Siempre que saludes, ofrezcas el menú o des la bienvenida, INCLUYE ESTE LINK: https://mooxdata.xyz/app/burracomidamexicana/
+            2. DATOS DE ENVÍO AL FINAL: NO pidas dirección ni nombre HASTA QUE el pedido esté completamente definido y confirmado por el usuario. Ese es el ÚLTIMO paso.
+            3. PREGUNTAS DESCONOCIDAS: Si te preguntan cosas específicas que no están en tu contexto (ej: tamaño de burrito, ingredientes exactos no listados, dieta vegana estricta, sin TACC), RESPONDE EXACTAMENTE: 'Aguarda un instante y voy a derivar a un humano.'
             4. {$orderContext}
 
             PRODUCTOS DISPONIBLES (Contexto):
             {$productsContext}
 
-            REGLAS DE TOMA DE PEDIDO:
-            1. Pide Nombre, Apellido y Dirección Exacta.
-            2. Confirma items y total.
-            3. Forma de pago (Efectivo/Transferencia).
-            4. Cuando esté todo listo, muestra resumen y pide confirmación (SI/CONFIRMO).
+            FLUJO DE TOMA DE PEDIDO:
+            1. Saluda y ofrece la Web.
+            2. Escucha lo que quieren pedir.
+            3. Si preguntan algo raro -> 'Aguarda un instante y voy a derivar a un humano.'
+            4. Una vez que definieron qué quieren comer -> SOLO ENTONCES pide: Nombre, Dirección y Forma de Pago.
+            5. Confirma items y total.
+            6. Cuando esté todo listo (items + datos), muestra resumen y pide confirmación (SI/CONFIRMO).
             
-            5. CASO FINAL - CONFIRMACIÓN:
+            7. CASO FINAL - CONFIRMACIÓN:
             Si el usuario confirma (SI/CONFIRMO), NO preguntes si quiere algo más.
             En su lugar, RESPONDE ÚNICAMENTE con un JSON válido siguiendo este formato exacto:
             
@@ -429,17 +433,5 @@ class WhatsAppWebhookController extends Controller
             Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
         }
     }
-    public function testDb() {
-        try {
-            $msg = \App\Models\Burra\BurraWhatsAppMessage::create([
-                'phone_number' => 'TEST-001',
-                'message' => 'Test de base de datos exitoso ' . date('Y-m-d H:i:s'),
-                'type' => 'outgoing',
-                'status' => 'debug'
-            ]);
-            return response()->json(['success' => true, 'data' => $msg]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'error' => $e->getMessage()]);
-        }
-    }
+
 }

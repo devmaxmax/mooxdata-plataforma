@@ -36,6 +36,8 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
     Route::get('/panel', [BurraController::class, 'showLoginForm'])->name('login');
     Route::post('/panel', [BurraController::class, 'panel'])->name('login.panel');
     Route::post('/logout', [BurraController::class, 'logout'])->name('logout');
+    Route::get('/politica-de-privacidad', [BurraController::class, 'politicaDePrivacidad'])->name('politica-de-privacidad');
+    Route::get('/terms', [BurraController::class, 'terminosDeServicio'])->name('terminos-de-servicio');
 
     
 

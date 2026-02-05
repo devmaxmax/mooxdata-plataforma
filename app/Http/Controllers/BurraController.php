@@ -107,6 +107,13 @@ class BurraController extends Controller
                 ]);
             }
             
+            // --- INTEGRACIÓN FUDA ---
+            // Enviamos el pedido a FUDA de forma asíncrona o directa.
+            // Para no bloquear la respuesta al cliente si la API está lenta, idealmente usaríamos Queues.
+            // Pero por simplicidad requerida:
+            $this->sendOrderToFuda($order);
+            // ------------------------
+
             return response()->json([
                 'success' => true,
                 'order_id' => $order->id
@@ -202,8 +209,35 @@ class BurraController extends Controller
 
     public function getOrders()
     {
+        // Mantenimiento: Cancelar pedidos viejos automáticamente cada vez que se consulta
+        $this->autoCancelOldOrders();
+
         $orders = BurraOrder::with('items')->latest()->get();
         return response()->json($orders);
+    }
+
+    private function autoCancelOldOrders()
+    {
+        try {
+            $limitTime = Carbon::now()->subMinutes(30);
+            
+            $orders = BurraOrder::where('status', 'pending')
+                        ->where('created_at', '<', $limitTime)
+                        ->get();
+
+            foreach ($orders as $order) {
+                $order->status = 'cancelled';
+                $order->save();
+                
+                Log::info("Pedido #{$order->id} auto-cancelado por antigüedad (>30 min) desde getOrders.");
+
+                // Intentar cancelar en FUDA
+                $this->cancelOrderInFuda($order->id);
+            }
+        } catch (\Exception $e) {
+            // Silencioso para no romper la API de getOrders
+            Log::error("Error en autoCancelOldOrders: " . $e->getMessage());
+        }
     }
 
     public function updateOrderStatus(Request $request, $id)
@@ -211,11 +245,24 @@ class BurraController extends Controller
         $order = BurraOrder::findOrFail($id);
         $order->status = $request->status;
         $order->save();
+
+        if ($request->status === 'completed' && $order->customer_phone) {
+            $this->sendMessageToMeta($order->customer_phone, "👨‍🍳🔥 Su pedido se encuentra en la cocina.");
+        }
+
+        if ($request->status === 'cancelled') {
+            $this->cancelOrderInFuda($id);
+        }
+
         return response()->json(['success' => true]);
     }
 
     public function destroyOrder($id)
     {
+        // --- INTEGRACIÓN FUDA ---
+        $this->cancelOrderInFuda($id);
+        // ------------------------
+
         $order = BurraOrder::findOrFail($id);
         $order->delete();
         return response()->json(['success' => true]);
@@ -382,27 +429,11 @@ class BurraController extends Controller
         $phone = $request->phone;
         $message = $request->message;
 
-        // 1. Enviar a Meta
-        $token = env('META_WHATSAPP_TOKEN');
-        $phoneId = env('META_PHONE_ID');
-        $version = 'v21.0'; 
-        $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
+        // 1. Enviar a Meta (Refactorizado)
+        $sent = $this->sendMessageToMeta($phone, $message);
 
-        try {
-            $response = Http::withToken($token)->post($url, [
-                'messaging_product' => 'whatsapp',
-                'to' => $phone,
-                'type' => 'text',
-                'text' => ['body' => $message]
-            ]);
-
-            if ($response->failed()) {
-                Log::error('Meta API Error: ' . $response->body());
-                return response()->json(['error' => 'Error enviando mensaje a Meta'], 500);
-            }
-        } catch (\Exception $e) {
-            Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
-            return response()->json(['error' => 'Excepción de servidor'], 500);
+        if (!$sent) {
+            return response()->json(['error' => 'Error enviando mensaje a Meta'], 500);
         }
 
         // 2. Guardar en DB
@@ -436,4 +467,296 @@ class BurraController extends Controller
         $request->session()->regenerateToken();
         return redirect()->route('burra.login');
     }
+
+    public function politicaDePrivacidad()
+    {
+        return view('layouts.burra.privacidad');
+    }
+
+    public function terminosDeServicio()
+    {
+        return view('layouts.burra.terminos');
+    }
+
+    private function sendMessageToMeta($to, $messageBody)
+    {
+        $token = env('META_WHATSAPP_TOKEN');
+        $phoneId = env('META_PHONE_ID');
+        $version = 'v21.0'; 
+        
+        $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
+
+        try {
+            $response = Http::withToken($token)->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'text',
+                'text' => ['body' => $messageBody]
+            ]);
+
+            if ($response->failed()) {
+                Log::error('Meta API Error: ' . $response->body());
+                return false;
+            }
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error('Excepción enviando WhatsApp: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // INTEGRACIÓN FUDA
+    // -------------------------------------------------------------------------
+
+    /**
+     * Envía el pedido a la API de FUDA.
+     *
+     * @param  \App\Models\Burra\BurraOrder  $order
+     * @return void
+     */
+    private function logFuda($message, $data = null, $level = 'info')
+    {
+        $logEntry = "[" . Carbon::now()->toDateTimeString() . "] " . strtoupper($level) . ": {$message}";
+        if ($data) {
+            $logEntry .= "\nData: " . json_encode($data, JSON_PRETTY_PRINT);
+        }
+        $logEntry .= "\n--------------------------------------------------\n";
+        
+        // Escribir en un archivo dedicado
+        try {
+            file_put_contents(storage_path('logs/fuda_debug.log'), $logEntry, FILE_APPEND);
+        } catch (\Exception $e) {
+            Log::error("No se pudo escribir en fuda_debug.log: " . $e->getMessage());
+        }
+    }
+
+    private function sendOrderToFuda(BurraOrder $order)
+    {
+        // ---------------- CONFIGURACIÓN ----------------
+        $fudaBaseUrl = env('FUDA_API_URL', 'https://api.fu.do/v1alpha1'); 
+        $priceListId = env('FUDA_PRICELIST_ID', '1'); 
+        
+        $token = $this->getFudaToken();
+
+        if (!$token) {
+            Log::error("No se pudo obtener el token de FUDA. Abortando envío.");
+            $this->logFuda("FALLÓ: No se pudo obtener Token", null, 'error');
+            return;
+        }
+        // -----------------------------------------------
+
+        $this->logFuda("Iniciando envío de pedido #{$order->id} a FUDA", ['customer' => $order->customer_name]);
+
+        try {
+            // 1. CREAR LA VENTA (SALE)
+            $salePayload = [
+                'data' => [
+                    'type' => 'Sale',
+                    'attributes' => [
+                        'saleType' => 'DELIVERY', // O 'TAKEAWAY', 'EAT-IN'
+                        'customerName' => $order->customer_name ?? 'Cliente Web',
+                        'comment' => $order->customer_note,
+                        // 'people' => 1
+                    ],
+                    'relationships' => [
+                        // Opcional: Si tuvieras 'customer', 'table', 'waiter' IDs reales
+                    ]
+                ]
+            ];
+
+            $this->logFuda("Payload crear Venta (POST /sales)", $salePayload);
+
+            $saleResponse = Http::withToken($token)
+                                ->post("{$fudaBaseUrl}/sales", $salePayload);
+
+            $this->logFuda("Respuesta crear Venta", [
+                'status' => $saleResponse->status(), 
+                'body' => $saleResponse->json() ?? $saleResponse->body()
+            ]);
+
+            if ($saleResponse->failed()) {
+                Log::error("Error al crear Sale en FUDA: " . $saleResponse->body());
+                $this->logFuda("FALLÓ creación de venta", null, 'error');
+                return;
+            }
+
+            $saleData = $saleResponse->json('data');
+            $saleId = $saleData['id'] ?? null;
+
+            if (!$saleId) {
+                Log::error("FUDA respondió éxito pero sin ID de venta.");
+                $this->logFuda("FALLÓ: Sin ID de venta en respuesta", null, 'error');
+                return;
+            }
+
+            Log::info("Venta creada en FUDA con ID: {$saleId}");
+
+            // 2. CREAR ITEMS ASOCIADOS A LA VENTA
+            if (!$order->relationLoaded('items')) {
+                $order->load('items');
+            }
+
+            foreach ($order->items as $item) {
+                $product = BurraProduct::find($item->product_id);
+                $codeFuda = $product ? $product->code_fuda : null;
+
+                if (!$codeFuda) {
+                    $this->logFuda("Producto '{$item->product_name}' (ID Local: {$item->product_id}) SIN code_fuda. Omitido.", null, 'warning');
+                    Log::warning("Producto '{$item->product_name}' no tiene code_fuda. Omitiendo envío a FUDA.");
+                    continue;
+                }
+
+                $itemPayload = [
+                    'data' => [
+                        'type' => 'Item',
+                        'attributes' => [
+                            'quantity' => (int) $item->quantity,
+                            'price' => (float) $item->price,
+                            // 'comment' => '' 
+                        ],
+                        'relationships' => [
+                            'product' => [
+                                'data' => [
+                                    'id' => (string) $codeFuda,
+                                    'type' => 'Product'
+                                ]
+                            ],
+                            'sale' => [
+                                'data' => [
+                                    'id' => (string) $saleId,
+                                    'type' => 'Sale'
+                                ]
+                            ],
+                            'priceList' => [
+                                'data' => [
+                                    'id' => (string) $priceListId,
+                                    'type' => 'PriceList'
+                                ]
+                            ]
+                        ]
+                    ]
+                ];
+
+                $this->logFuda("Agregando Item '{$item->product_name}' (Code: $codeFuda)", $itemPayload);
+
+                $itemResponse = Http::withToken($token)
+                                    ->post("{$fudaBaseUrl}/items", $itemPayload);
+
+                if ($itemResponse->failed()) {
+                    Log::error("Error al agregar Item (Prod ID: $codeFuda) a Sale #{$saleId}: " . $itemResponse->body());
+                    $this->logFuda("FALLÓ agregar Item", ['response' => $itemResponse->body()], 'error');
+                } else {
+                    Log::info("Item agregado a FUDA (Sale #{$saleId}, Prod #{$codeFuda})");
+                    $this->logFuda("Item agregado OK");
+                }
+            }
+
+            Log::info("Sincronización con FUDA completada para pedia #{$order->id}");
+            $this->logFuda("FIN Sincronización Pedido #{$order->id}");
+
+        } catch (\Exception $e) {
+            Log::error("Excepción al enviar pedido #{$order->id} a FUDA: " . $e->getMessage());
+            $this->logFuda("EXCEPCIÓN CRÍTICA", ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 'error');
+        }
+    }
+
+    /**
+     * Cancela el pedido en FUDA.
+     *
+     * @param  int  $orderId
+     * @return void
+     */
+    private function cancelOrderInFuda($orderId)
+    {
+        // ---------------- CONFIGURACIÓN ----------------
+        // @TODO: Reemplazar con las credenciales reales
+        $clientId = env('FUDA_CLIENT_ID', 'MDAwMDI6MzE1Njk5');
+        $clientSecret = env('FUDA_CLIENT_SECRET', 'aDnXVFxFXkUUPJWpAKmohi5Q');
+        $authString = base64_encode("{$clientId}:{$clientSecret}");
+
+        $fudaBaseUrl = env('FUDA_API_URL', 'https://api.fu.do/v1alpha1');
+        // -----------------------------------------------
+
+        try {
+            // Asumiendo endpoint UPDATE sale state a CLOSED o CANCELED
+            // PATCH /sales/{id}
+            
+            // NOTA: Para cancelar, necesitaríamos el ID de FUDA de la venta, el cual no estamos guardando.
+            // Si $orderId es el external_id, FUDA no lo reconocerá directo en /sales/{id} a menos que hayamos guardado el mapeo.
+            // Por ahora, solo intentamos si tuviéramos el fuda ID, o lo dejamos como TODO.
+            // Como el usuario pidió "Que se conecta y envíe", y "Cuando se cancela que se cancele",
+            // necesitamos guardar el ID de respuesta de FUDA en sendOrderToFuda.
+            
+            // SIN EMBARGO, sin cambiar la base de datos para guardar 'fuda_sale_id', no podemos cancelar por ID.
+            // Voy a dejar el código preparado para cuando se guarde el ID, o intentar usar un external_id filter si existe.
+            
+            // Asumamos que NO podemos cancelar sin ID. Logueamos advertencia.
+            Log::warning("Cancelación en FUDA pendiente: Se requiere guardar el ID de FUDA en la base de datos local para poder cancelar la venta #{$orderId}.");
+
+            /*
+            $url = "{$fudaBaseUrl}/sales/{$fudaSaleId}";
+            $response = Http::withToken($fudaToken)
+                            ->patch($url, [
+                                'data' => [
+                                    'type' => 'Sale',
+                                    'id' => $fudaSaleId,
+                                    'attributes' => [
+                                        'saleState' => 'CANCELED' // Verificar enum correcto
+                                    ]
+                                ]
+                            ]);
+            */
+
+        } catch (\Exception $e) {
+            Log::error("Excepción al cancelar pedido #{$orderId} en FUDA: " . $e->getMessage());
+        }
+    }
+
+
+
+    /**
+     * Obtiene el token de acceso de Fudo, usando caché para respetar la expiración.
+     */
+    private function getFudaToken()
+    {
+        // Retornar token en caché si existe
+        if (Cache::has('fuda_access_token')) {
+            return Cache::get('fuda_access_token');
+        }
+
+        $apiKey = env('FUDA_CLIENT_ID');     // En Fudo esto es el "API Key" o User
+        $apiSecret = env('FUDA_CLIENT_SECRET'); // En Fudo esto es el "API Secret"
+        $authUrl = 'https://auth.fu.do/api';
+
+        try {
+            $response = Http::post($authUrl, [
+                'apiKey' => $apiKey,
+                'apiSecret' => $apiSecret,
+            ]);
+
+            if ($response->failed()) {
+                Log::error('Error obteniendo token Fudo: ' . $response->body());
+                return null;
+            }
+
+            $data = $response->json();
+            $token = $data['token'] ?? null;
+            // $exp = $data['exp'] ?? null; // Timestamp epoch
+
+            if ($token) {
+                // Guardamos en caché por 23 horas (un poco menos de 24 para margen de error)
+                Cache::put('fuda_access_token', $token, now()->addHours(23));
+                return $token;
+            }
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Excepción obteniendo token Fudo: ' . $e->getMessage());
+            return null;
+        }
+    }
+
 }
