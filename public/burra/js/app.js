@@ -458,7 +458,7 @@ function dame_html_variantes(variedades_array, p_id, variante_nro, moneda_signo,
         if (!variedad.variedadestilo) {
             variedad.variedadestilo = "NORMAL";
         }
-        
+
         if (producto.tiene_precios_diferentes && variante_nro == 0) {
             variedad.variedadestilo = "NORMAL";
         }
@@ -1156,7 +1156,7 @@ function mostrar_resumen_pedido() {
         $('.helper_resumen').show();
         $('.producto-imagen-carrito').show();
 
-        g_pedido.productos.forEach(function(producto, index, mi_array) {
+        g_pedido.productos.forEach(function (producto, index, mi_array) {
             $('#producto_' + producto.id).show();
         });
 
@@ -1211,9 +1211,9 @@ function buscar() {
     v_palabra = quitar_acentos(v_palabra);
 
     if (v_palabra.length < 0) { console.log("Aun no llega al limite de caracteres"); return false; }
-    g_productos.forEach( function(producto, index, mi_array) { 
-        v_mostrar_producto=false; 
-        if (quitar_acentos(producto.nombre.toLowerCase()).indexOf(v_palabra)>= 0) v_mostrar_producto = true;
+    g_productos.forEach(function (producto, index, mi_array) {
+        v_mostrar_producto = false;
+        if (quitar_acentos(producto.nombre.toLowerCase()).indexOf(v_palabra) >= 0) v_mostrar_producto = true;
         if (quitar_acentos(producto.descripcion.toLowerCase()).indexOf(v_palabra) >= 0) v_mostrar_producto = true;
 
         if (v_palabra == "") v_mostrar_producto = false;
@@ -1303,7 +1303,7 @@ function copyTextToClipboard(text) {
     try {
         var successful = document.execCommand('copy');
         var msg = successful ? 'successful' : 'unsuccessful';
-    } catch (err) {}
+    } catch (err) { }
 
     document.body.removeChild(textArea);
 }
@@ -1387,23 +1387,23 @@ function eliminar_producto_completo(p_id, p_variedad, p_variedad2 = null, p_vari
     p_variedad5 = null, p_variedad6 = null, p_variedad7 = null, p_variedad8 = null, p_variedad9 = null,
     p_variedad10 = null, p_variedad11 = null, p_variedad12 = null
 ) {
-    for (var i = 0; i < g_pedido.productos.length; i++) { 
-        var producto=g_pedido.productos[i]; 
-        if (p_id==producto.id
-            && p_variedad==producto.variedad && p_variedad2==producto.variedad2 && p_variedad3==producto.variedad3 &&
-            p_variedad4==producto.variedad4 && p_variedad5==producto.variedad5 && p_variedad6==producto.variedad6 &&
-            p_variedad7==producto.variedad7 && p_variedad8==producto.variedad8 && p_variedad9==producto.variedad9 &&
-            p_variedad10==producto.variedad10 && p_variedad11==producto.variedad11 && p_variedad12==producto.variedad12
-        ) { 
-            g_pedido.productos.splice(i, 1); 
-            i--; 
-            break; 
-        } 
-    } 
-    calcular_total(); 
+    for (var i = 0; i < g_pedido.productos.length; i++) {
+        var producto = g_pedido.productos[i];
+        if (p_id == producto.id
+            && p_variedad == producto.variedad && p_variedad2 == producto.variedad2 && p_variedad3 == producto.variedad3 &&
+            p_variedad4 == producto.variedad4 && p_variedad5 == producto.variedad5 && p_variedad6 == producto.variedad6 &&
+            p_variedad7 == producto.variedad7 && p_variedad8 == producto.variedad8 && p_variedad9 == producto.variedad9 &&
+            p_variedad10 == producto.variedad10 && p_variedad11 == producto.variedad11 && p_variedad12 == producto.variedad12
+        ) {
+            g_pedido.productos.splice(i, 1);
+            i--;
+            break;
+        }
+    }
+    calcular_total();
     if (g_viendo_resumen) {
-        $('#producto_' + p_id).hide(); 
-        var remaining=g_pedido.productos.filter(p=> p.id == p_id).length;
+        $('#producto_' + p_id).hide();
+        var remaining = g_pedido.productos.filter(p => p.id == p_id).length;
         if (remaining > 0) {
             $('#producto_' + p_id).show();
         }
@@ -1426,7 +1426,7 @@ function quitar_del_pedido(p_id, p_variedad, p_variedad2 = null, p_variedad3 = n
     p_variedad11 = (p_variedad11 == "undefined") ? undefined : p_variedad11;
     p_variedad12 = (p_variedad12 == "undefined") ? undefined : p_variedad12;
 
-    g_pedido.productos.forEach(function(producto, index, mi_array) {
+    g_pedido.productos.forEach(function (producto, index, mi_array) {
         if (p_id == producto.id &&
             p_variedad == producto.variedad &&
             p_variedad2 == producto.variedad2 &&
@@ -1443,63 +1443,63 @@ function quitar_del_pedido(p_id, p_variedad, p_variedad2 = null, p_variedad3 = n
         ) {
             var nueva_cantidad = parseFloat(producto.cantidad) - parseFloat(producto.step);
 
-            if (nueva_cantidad < producto.minimo) { 
-                producto.cantidad=0; 
-                if (!no_calcular) {} 
+            if (nueva_cantidad < producto.minimo) {
+                producto.cantidad = 0;
+                if (!no_calcular) { }
             } else {
-                producto.cantidad=nueva_cantidad; 
-            } 
-            if (producto.cantidad=="0" ) { 
-                mi_array.splice(index, 1); 
-            } 
-        } 
+                producto.cantidad = nueva_cantidad;
+            }
+            if (producto.cantidad == "0") {
+                mi_array.splice(index, 1);
+            }
+        }
     });
-    calcular_total(); 
-} 
+    calcular_total();
+}
 
-function dame_producto(p_id) { 
+function dame_producto(p_id) {
     var producto_seleccionado = null;
-    g_productos.forEach(function(producto) { 
-        if (producto.id==p_id) { 
-            producto_seleccionado=JSON.parse(JSON.stringify(producto)); 
-            return; 
-        } 
-    }); 
-    return producto_seleccionado; 
-} 
+    g_productos.forEach(function (producto) {
+        if (producto.id == p_id) {
+            producto_seleccionado = JSON.parse(JSON.stringify(producto));
+            return;
+        }
+    });
+    return producto_seleccionado;
+}
 
-var variedades_actuales=[]; 
+var variedades_actuales = [];
 var variedades_seleccionadas = [];
 var suma_de_adicionales = 0;
 
-function agregar_al_pedido(p_id, p_variedad, p_variedad_2=null, p_variedad_3=null, p_variedad_4=null, p_variedad_5=null, p_variedad_6=null,
-    p_variedad_7=null, p_variedad_8=null, p_variedad_9=null, p_variedad_10=null, p_variedad_11=null,
-    p_variedad_12=null ) { 
-    
-    if (!g_telefono) { console.log('NO tiene teléfono, el producto no puede ser pedido'); return false; } 
-    var variedades_seleccionadas_final=variedades_seleccionadas;
-    variedades_seleccionadas=[]; 
-    
-    var producto=dame_producto(p_id); 
-    
-    p_variedad_2=(p_variedad_2=="undefined" ) ? undefined : p_variedad_2; 
-    p_variedad_3=(p_variedad_3=="undefined" ) ? undefined : p_variedad_3;
-    p_variedad_4=(p_variedad_4=="undefined" ) ? undefined : p_variedad_4;
-    p_variedad_5=(p_variedad_5=="undefined" ) ? undefined : p_variedad_5;
-    p_variedad_6=(p_variedad_6=="undefined" ) ? undefined : p_variedad_6;
-    p_variedad_7=(p_variedad_7=="undefined" ) ? undefined : p_variedad_7;
-    p_variedad_8=(p_variedad_8=="undefined" ) ? undefined : p_variedad_8;
-    p_variedad_9=(p_variedad_9=="undefined" ) ? undefined : p_variedad_9;
-    p_variedad_10=(p_variedad_10=="undefined" ) ? undefined : p_variedad_10;
-    p_variedad_11=(p_variedad_11=="undefined" ) ? undefined : p_variedad_11;
-    p_variedad_12=(p_variedad_12=="undefined" ) ? undefined : p_variedad_12; 
-    
-    if (p_variedad==undefined || p_variedad==null) { 
-        console.log("Inicializo los ingredientes"); 
-        suma_de_adicionales=0; 
-    } 
-    
-    if (producto.variedades && producto.variedades.length> 0 && p_variedad == undefined) {
+function agregar_al_pedido(p_id, p_variedad, p_variedad_2 = null, p_variedad_3 = null, p_variedad_4 = null, p_variedad_5 = null, p_variedad_6 = null,
+    p_variedad_7 = null, p_variedad_8 = null, p_variedad_9 = null, p_variedad_10 = null, p_variedad_11 = null,
+    p_variedad_12 = null) {
+
+    if (!g_telefono) { console.log('NO tiene teléfono, el producto no puede ser pedido'); return false; }
+    var variedades_seleccionadas_final = variedades_seleccionadas;
+    variedades_seleccionadas = [];
+
+    var producto = dame_producto(p_id);
+
+    p_variedad_2 = (p_variedad_2 == "undefined") ? undefined : p_variedad_2;
+    p_variedad_3 = (p_variedad_3 == "undefined") ? undefined : p_variedad_3;
+    p_variedad_4 = (p_variedad_4 == "undefined") ? undefined : p_variedad_4;
+    p_variedad_5 = (p_variedad_5 == "undefined") ? undefined : p_variedad_5;
+    p_variedad_6 = (p_variedad_6 == "undefined") ? undefined : p_variedad_6;
+    p_variedad_7 = (p_variedad_7 == "undefined") ? undefined : p_variedad_7;
+    p_variedad_8 = (p_variedad_8 == "undefined") ? undefined : p_variedad_8;
+    p_variedad_9 = (p_variedad_9 == "undefined") ? undefined : p_variedad_9;
+    p_variedad_10 = (p_variedad_10 == "undefined") ? undefined : p_variedad_10;
+    p_variedad_11 = (p_variedad_11 == "undefined") ? undefined : p_variedad_11;
+    p_variedad_12 = (p_variedad_12 == "undefined") ? undefined : p_variedad_12;
+
+    if (p_variedad == undefined || p_variedad == null) {
+        console.log("Inicializo los ingredientes");
+        suma_de_adicionales = 0;
+    }
+
+    if (producto.variedades && producto.variedades.length > 0 && p_variedad == undefined) {
         var variedades_array = producto.variedades;
         var variedades_html = dame_html_variantes(variedades_array, p_id, 0, "$", false);
 
@@ -1523,10 +1523,10 @@ function agregar_al_pedido(p_id, p_variedad, p_variedad_2=null, p_variedad_3=nul
         $.fancybox.open({
             src: "#pregunta_variedades",
             opts: {
-                beforeShow: function() {
+                beforeShow: function () {
                     $("body").css({ 'overflow-y': 'hidden' });
                 },
-                afterClose: function() {
+                afterClose: function () {
                     $("body").css({ 'overflow-y': 'visible' });
                 }
             }
@@ -1537,7 +1537,7 @@ function agregar_al_pedido(p_id, p_variedad, p_variedad_2=null, p_variedad_3=nul
         if (p_variedad == undefined) {
         } else {
             producto.variedad = p_variedad;
-            producto.variedades.forEach(function(variedad) {
+            producto.variedades.forEach(function (variedad) {
                 if (variedad.nombre == p_variedad) {
                     producto.precio = variedad.precio;
                     producto.minimo = variedad.minimo;
@@ -1565,30 +1565,30 @@ function agregar_al_pedido(p_id, p_variedad, p_variedad_2=null, p_variedad_3=nul
 
         if (stock_producto) {
             producto.id_stock = stock_producto.id;
-            if (stock_producto.stock < producto.maximo) { 
-                console.log('El stock es inferior al máximo a pedir. Lo cambio'); 
-                producto.maximo=stock_producto.stock; 
-            } 
-        } 
-        
-        var agrupado=false;
-        g_pedido.productos.forEach(function(producto_para_agrupar) { 
-            if (producto_para_agrupar.id==producto.id && producto_para_agrupar.variedad==producto.variedad &&
-                producto_para_agrupar.variedad2==producto.variedad2 &&
-                producto_para_agrupar.variedad3==producto.variedad3 &&
-                producto_para_agrupar.variedad4==producto.variedad4 &&
-                producto_para_agrupar.variedad5==producto.variedad5 &&
-                producto_para_agrupar.variedad6==producto.variedad6 &&
-                producto_para_agrupar.variedad7==producto.variedad7 &&
-                producto_para_agrupar.variedad8==producto.variedad8 &&
-                producto_para_agrupar.variedad9==producto.variedad9 &&
-                producto_para_agrupar.variedad10==producto.variedad10 &&
-                producto_para_agrupar.variedad11==producto.variedad11 &&
-                producto_para_agrupar.variedad12==producto.variedad12 
-            ) { 
-                agrupado=true; 
-                var nueva_cantidad=parseFloat(producto_para_agrupar.cantidad) + parseFloat(producto.step); 
-                if (nueva_cantidad> parseFloat(producto.maximo)) {
+            if (stock_producto.stock < producto.maximo) {
+                console.log('El stock es inferior al máximo a pedir. Lo cambio');
+                producto.maximo = stock_producto.stock;
+            }
+        }
+
+        var agrupado = false;
+        g_pedido.productos.forEach(function (producto_para_agrupar) {
+            if (producto_para_agrupar.id == producto.id && producto_para_agrupar.variedad == producto.variedad &&
+                producto_para_agrupar.variedad2 == producto.variedad2 &&
+                producto_para_agrupar.variedad3 == producto.variedad3 &&
+                producto_para_agrupar.variedad4 == producto.variedad4 &&
+                producto_para_agrupar.variedad5 == producto.variedad5 &&
+                producto_para_agrupar.variedad6 == producto.variedad6 &&
+                producto_para_agrupar.variedad7 == producto.variedad7 &&
+                producto_para_agrupar.variedad8 == producto.variedad8 &&
+                producto_para_agrupar.variedad9 == producto.variedad9 &&
+                producto_para_agrupar.variedad10 == producto.variedad10 &&
+                producto_para_agrupar.variedad11 == producto.variedad11 &&
+                producto_para_agrupar.variedad12 == producto.variedad12
+            ) {
+                agrupado = true;
+                var nueva_cantidad = parseFloat(producto_para_agrupar.cantidad) + parseFloat(producto.step);
+                if (nueva_cantidad > parseFloat(producto.maximo)) {
                     producto_para_agrupar.cantidad = producto.maximo;
                     if (!no_calcular) {
                         mostrar_aviso_error('No puede agregar más de ' + producto.maximo);
@@ -1629,22 +1629,22 @@ function pre_agregar_al_pedido(prod_id, variedad_nombre, monto_a_sumar = 0) {
     var variedad_siguiente_nro = variedades_seleccionadas.length + 1;
     var varidad_actual_idx = 0;
 
-    for (var idxvar = 0; idxvar < miprod.variedades.length; idxvar++) { 
-        if (miprod.variedades[idxvar].nombre==variedad_nombre) { 
-            varidad_actual_idx=idxvar; 
-        } 
-    } 
-    
+    for (var idxvar = 0; idxvar < miprod.variedades.length; idxvar++) {
+        if (miprod.variedades[idxvar].nombre == variedad_nombre) {
+            varidad_actual_idx = idxvar;
+        }
+    }
+
     if (miprod.variedades[varidad_actual_idx]['variedades' + variedad_siguiente_nro]) {
-        variedad_siguiente=miprod.variedades[varidad_actual_idx]['variedades' + variedad_siguiente_nro];
-    } 
-    
+        variedad_siguiente = miprod.variedades[varidad_actual_idx]['variedades' + variedad_siguiente_nro];
+    }
+
     if (variedad_siguiente) {
-        $.fancybox.close(); 
-        var variedades_sig_arr=variedad_siguiente.split(','); 
-        var variedades_sig_arr_con_estilos=[]; 
-        
-        $(variedades_sig_arr).each((ii, vari)=> {
+        $.fancybox.close();
+        var variedades_sig_arr = variedad_siguiente.split(',');
+        var variedades_sig_arr_con_estilos = [];
+
+        $(variedades_sig_arr).each((ii, vari) => {
             var conestilo = {
                 nombre: vari,
                 variedadestilo: miprod.variedades[varidad_actual_idx]['variedad' + variedad_siguiente_nro + 'estilo'],
@@ -1723,7 +1723,7 @@ function calcular_total() {
         $(".separador-producto-de-variedad").hide();
         $(".separador-productos").show();
 
-        g_pedido.productos.forEach(function(producto, p_idx) {
+        g_pedido.productos.forEach(function (producto, p_idx) {
             id = producto.id;
             $("#fila_" + id).addClass("producto-pedido");
 
@@ -1785,7 +1785,7 @@ function calcular_total() {
         });
 
         pedido = "";
-        
+
         // WhatsApp Message Generation
         g_pedido.preguntas = [];
         pedido += "*Nombre y Apellido(*)*\n_" + $("#pregunta_1_respuesta").val() + "_\n\n";
@@ -1796,36 +1796,36 @@ function calcular_total() {
         if (g_zonas_envios.length > 0) {
             pedido += "*" + $("#pregunta_10_label").text() + "*\n_" + $("#pregunta_10_respuesta").val() + "_\n\n";
         }
-        
+
         pedido += "*Pedido:*\n";
 
-        g_pedido.productos.forEach(function(producto) {
-             var linea_pedido = '*CANTIDAD* x *NOMBRE* *VARIEDAD* *ACLARACION*\nSubtotal = $*SUBTOTAL*\n';
-             linea_pedido = linea_pedido.replace('*CANTIDAD*', "*" + producto.cantidad + "*");
-             linea_pedido = linea_pedido.replace('*NOMBRE*', "*" + producto.nombre + "*");
-             
-             var subtotal = (producto.cantidad * producto.precio) + (producto.cantidad * producto.adicionales);
-             linea_pedido = linea_pedido.replace('*SUBTOTAL*', "" + formatear_moneda(subtotal) + "");
-             
-             var variedad = "";
-             if (producto.variedad) {
-                 variedad = "(" + producto.variedad + 
+        g_pedido.productos.forEach(function (producto) {
+            var linea_pedido = '*CANTIDAD* x *NOMBRE* *VARIEDAD* *ACLARACION*\nSubtotal = $*SUBTOTAL*\n';
+            linea_pedido = linea_pedido.replace('*CANTIDAD*', "*" + producto.cantidad + "*");
+            linea_pedido = linea_pedido.replace('*NOMBRE*', "*" + producto.nombre + "*");
+
+            var subtotal = (producto.cantidad * producto.precio) + (producto.cantidad * producto.adicionales);
+            linea_pedido = linea_pedido.replace('*SUBTOTAL*', "" + formatear_moneda(subtotal) + "");
+
+            var variedad = "";
+            if (producto.variedad) {
+                variedad = "(" + producto.variedad +
                     (producto.variedad2 ? ", " + producto.variedad2 : "") +
                     (producto.variedad3 ? ", " + producto.variedad3 : "") +
                     ")"; // Simplified for brevity but logic should match original if needed
-             }
-             linea_pedido = linea_pedido.replace('*VARIEDAD*', variedad);
-             
-             var aclaracion = $("#aclaracion_" + producto.id).val();
-             if (aclaracion) {
-                 linea_pedido = linea_pedido.replace('*ACLARACION*', "\n*Aclaración: " + aclaracion + "*");
-             } else {
-                 linea_pedido = linea_pedido.replace('*ACLARACION*', "");
-             }
-             
-             pedido += "\n" + linea_pedido;
+            }
+            linea_pedido = linea_pedido.replace('*VARIEDAD*', variedad);
+
+            var aclaracion = $("#aclaracion_" + producto.id).val();
+            if (aclaracion) {
+                linea_pedido = linea_pedido.replace('*ACLARACION*', "\n*Aclaración: " + aclaracion + "*");
+            } else {
+                linea_pedido = linea_pedido.replace('*ACLARACION*', "");
+            }
+
+            pedido += "\n" + linea_pedido;
         });
-        
+
         var pedido_extras = 0;
         if (g_zonas_envios.length > 0) {
             var pedido_extra_2_costo = $("#pregunta_10_respuesta").find(':selected').data('costo');
@@ -1833,17 +1833,17 @@ function calcular_total() {
                 pedido_extras += parseFloat(pedido_extra_2_costo);
             }
         }
-        
+
         pedido += "\n*Total pedido: $" + formatear_moneda(total + pedido_extras) + "*";
 
         url_pedido = "https://wa.me/" + g_telefono + "?text=" + encodeURIComponent(pedido);
-        
+
         var preguntas_resumen = '';
         preguntas_resumen += '<table style="width: 100%;"><tbody>';
         preguntas_resumen += '<tr><td>Pedido</td><td style="text-align: right;">$' + formatear_moneda(total) + '</td></tr>';
-        
+
         if (pedido_extras > 0) {
-             preguntas_resumen += '<tr><td>Envio</td><td style="text-align: right;">$' + formatear_moneda(pedido_extras) + '</td></tr>';
+            preguntas_resumen += '<tr><td>Envio</td><td style="text-align: right;">$' + formatear_moneda(pedido_extras) + '</td></tr>';
         }
 
         preguntas_resumen += '<tr><td><strong>Total</strong></td><td style="text-align: right;"><strong>$' + formatear_moneda(total + pedido_extras) + '</strong></td></tr>';
@@ -1859,15 +1859,21 @@ function calcular_total() {
         g_pedido.mensaje = pedido;
 
         $('.pedido_productos_cantidad_total').html(total_cantidad_de_productos);
-        
+
         if (g_pedido.productos.length == 0) {
             $("#footer_enviar").slideUp();
             $('.helper_footer_padding').hide();
         } else {
-             if (total > 0) {
+            if (total > 0) {
                 $("#boton_enviar").html("<i class='fab fa-whatsapp'></i> <span id='send_message_text'>&nbsp;Enviar pedido por WhatsApp&nbsp;</span> <b>$" + formatear_moneda(total + pedido_extras) + "</b>");
             }
-            $("#footer_enviar").slideDown();
+
+            // Check if store is closed before showing
+            if (document.body.classList.contains('store-closed')) {
+                $("#footer_enviar").hide();
+            } else {
+                $("#footer_enviar").slideDown();
+            }
         }
 
         if (typeof g_viendo_resumen !== 'undefined' && g_viendo_resumen) {
@@ -1888,16 +1894,16 @@ function formatear_moneda(x) {
 }
 
 function enviar_pedido() {
-    var pedido_monto_minimo = 0; 
-    
+    var pedido_monto_minimo = 0;
+
     if (g_pedido.precio_final >= pedido_monto_minimo) {
         pre_abrir_preguntas();
 
         $.fancybox.open({
             src: '#preguntas_pedido',
             opts: {
-                beforeShow: function() { $("body").css({ 'overflow-y': 'hidden' }); },
-                afterClose: function() { $("body").css({ 'overflow-y': 'visible' }); }
+                beforeShow: function () { $("body").css({ 'overflow-y': 'hidden' }); },
+                afterClose: function () { $("body").css({ 'overflow-y': 'visible' }); }
             }
         });
 
@@ -1913,10 +1919,10 @@ function pre_abrir_preguntas() {
         $("#pregunta_10_respuesta").empty();
         $("#pregunta_10_respuesta").append('<option value="">');
 
-        for (var i = 0; i < g_zonas_envios.length; i++) { 
-            var zona=g_zonas_envios[i]; 
-            var costo_envio=zona.costo; 
-            if (g_pedido_zona_envio_ignorar_monto !=-1) { 
+        for (var i = 0; i < g_zonas_envios.length; i++) {
+            var zona = g_zonas_envios[i];
+            var costo_envio = zona.costo;
+            if (g_pedido_zona_envio_ignorar_monto != -1) {
                 if (g_pedido.precio_solo_articulos >= g_pedido_zona_envio_ignorar_monto) {
                     costo_envio = 0;
                 }
@@ -1941,9 +1947,9 @@ function finalizar_pedido() {
     g_pedido.preguntas.push({ pregunta: $("#pregunta_2_label").text(), respuesta: $("#pregunta_2_respuesta").val() });
     g_pedido.preguntas.push({ pregunta: $("#pregunta_3_label").text(), respuesta: $("#pregunta_3_respuesta").val() });
     g_pedido.preguntas.push({ pregunta: $("#pregunta_4_label").text(), respuesta: $("#pregunta_4_respuesta").val() });
-    
+
     if (g_zonas_envios.length > 0) {
-         g_pedido.preguntas.push({ pregunta: $("#pregunta_10_label").text(), respuesta: $("#pregunta_10_respuesta").val() });
+        g_pedido.preguntas.push({ pregunta: $("#pregunta_10_label").text(), respuesta: $("#pregunta_10_respuesta").val() });
     }
 
     var orderData = {
@@ -1955,12 +1961,12 @@ function finalizar_pedido() {
         url: window.BurraConfig.route_pedido,
         method: 'POST',
         data: orderData,
-        success: function(response) {
+        success: function (response) {
             if (response.success) {
                 $.fancybox.close();
                 document.body.dispatchEvent(new CustomEvent('purchase'));
                 localStorage.removeItem('pedido-burracomidamexicana');
-                
+
                 // Redirect to WhatsApp
                 location.href = url_pedido;
             } else {
@@ -1973,7 +1979,7 @@ function finalizar_pedido() {
                 btn_finalizar.prop('disabled', false);
             }
         },
-        error: function() {
+        error: function () {
             Swal.fire({
                 icon: 'error',
                 title: 'Error',

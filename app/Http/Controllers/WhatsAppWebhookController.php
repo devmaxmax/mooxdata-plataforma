@@ -138,15 +138,30 @@ class WhatsAppWebhookController extends Controller
                 'status' => 'received'
             ]);
 
-            // Verificar Horario
-            // $now = Carbon::now('America/Argentina/Buenos_Aires');
-            // $startTime = $now->copy()->setTime(20, 0, 0);
-            // $endTime = $now->copy()->setTime(23, 50, 0);
+            // Verificar Horario y Días
+            $now = Carbon::now('America/Argentina/Buenos_Aires');
+            $startTime = $now->copy()->setTime(20, 0, 0);
+            $endTime = $now->copy()->setTime(23, 50, 0);
 
-            // if (!$now->between($startTime, $endTime)) {
-            //      // Fuera de horario
-            //      // return response('EVENT_RECEIVED', 200); // DESHABILITADO PARA TESTING
-            // }
+            // Días permitidos: Domingo(0), Miércoles(3), Jueves(4), Viernes(5), Sábado(6)
+            $allowedDays = [0, 3, 4, 5, 6];
+
+            Log::info('Webhook Time Check', [
+                'now' => $now->toDateTimeString(),
+                'dayOfWeek' => $now->dayOfWeek,
+                'isAllowedDay' => in_array($now->dayOfWeek, $allowedDays),
+                'isBetweenTime' => $now->between($startTime, $endTime)
+            ]);
+
+            if (!in_array($now->dayOfWeek, $allowedDays)) {
+                 // Día no permitido (Lunes/Martes)
+                 return response('EVENT_RECEIVED', 200); 
+            }
+
+            if (!$now->between($startTime, $endTime)) {
+                 // Fuera de horario
+                 return response('EVENT_RECEIVED', 200); 
+            }
 
             // Verificar Suspensión Manual
             if (Cache::has('burra_bot_suspended_' . $userPhone)) {

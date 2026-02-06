@@ -30,7 +30,28 @@ class BurraController extends Controller
         $startTime = $now->copy()->setTime(20, 0, 0);
         $endTime = $now->copy()->setTime(23, 50, 0);
 
+        // Días permitidos: Domingo(0), Miércoles(3), Jueves(4), Viernes(5), Sábado(6)
+        $allowedDays = [0, 3, 4, 5, 6];
+
+        Log::info('ChatBot Time Check', [
+            'now' => $now->toDateTimeString(),
+            'timezone' => $now->timezoneName,
+            'dayOfWeek' => $now->dayOfWeek,
+            'startTime' => $startTime->toDateTimeString(),
+            'endTime' => $endTime->toDateTimeString(),
+            'isAllowedDay' => in_array($now->dayOfWeek, $allowedDays),
+            'isBetweenTime' => $now->between($startTime, $endTime)
+        ]);
+
+        if (!in_array($now->dayOfWeek, $allowedDays)) {
+             Log::info('ChatBot: Blocked by day of week');
+             return response()->json([
+                'reply' => '',
+            ]);
+        }
+
         if (!$now->between($startTime, $endTime)) {
+             Log::info('ChatBot: Blocked by time');
              return response()->json([
                 'reply' => '',
             ]);
@@ -329,8 +350,6 @@ class BurraController extends Controller
             ->with('view', 'productos');
     }
 
-    // --- Categoy Management ---
-
     public function storeCategory(Request $request)
     {
         $validated = $request->validate([
@@ -362,7 +381,6 @@ class BurraController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // Delete old image if exists (optional, but good practice)
             if ($category->image && file_exists(public_path('burra/images/' . $category->image))) {
                 @unlink(public_path('burra/images/' . $category->image));
             }
@@ -536,7 +554,7 @@ class BurraController extends Controller
     private function sendOrderToFuda(BurraOrder $order)
     {
         //---------------- CONFIGURACIÓN ----------------
-        $fudaBaseUrl = env('FUDA_API_URL', 'https://integrations.fu.do/fudo'); 
+        $fudaBaseUrl = env('FUDA_API_URL'); 
         
         $token = $this->getFudaToken();
 
@@ -667,19 +685,7 @@ class BurraController extends Controller
         // -----------------------------------------------
 
         try {
-            // Asumiendo endpoint UPDATE sale state a CLOSED o CANCELED
-            // PATCH /sales/{id}
-            
-            // NOTA: Para cancelar, necesitaríamos el ID de FUDA de la venta, el cual no estamos guardando.
-            // Si $orderId es el external_id, FUDA no lo reconocerá directo en /sales/{id} a menos que hayamos guardado el mapeo.
-            // Por ahora, solo intentamos si tuviéramos el fuda ID, o lo dejamos como TODO.
-            // Como el usuario pidió "Que se conecta y envíe", y "Cuando se cancela que se cancele",
-            // necesitamos guardar el ID de respuesta de FUDA en sendOrderToFuda.
-            
-            // SIN EMBARGO, sin cambiar la base de datos para guardar 'fuda_sale_id', no podemos cancelar por ID.
-            // Voy a dejar el código preparado para cuando se guarde el ID, o intentar usar un external_id filter si existe.
-            
-            // Asumamos que NO podemos cancelar sin ID. Logueamos advertencia.
+
             Log::warning("Cancelación en FUDA pendiente: Se requiere guardar el ID de FUDA en la base de datos local para poder cancelar la venta #{$orderId}.");
 
             /*
@@ -715,10 +721,9 @@ class BurraController extends Controller
             return Cache::get('fuda_access_token');
         }
 
-        // CREDENCIALES HARDCODEADAS DE PRODUCCIÓN (TEMPORAL PARA TESTING)
-        $clientId = 'MDAwMDQ6MzE1Njk5';
-        $clientSecret = '0xQd9y0aTFNVo1T1SmVj5JAE';
-        $authUrl = 'https://integrations.fu.do/fudo/auth';
+        $clientId = env('FUDA_CLIENT_ID');
+        $clientSecret = env('FUDA_CLIENT_SECRET');
+        $authUrl = env('FUDA_API_URL');
 
         Log::info('[FUDO AUTH] Obteniendo nuevo token de FUDO', [
             'url' => $authUrl,
