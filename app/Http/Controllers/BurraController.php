@@ -108,10 +108,8 @@ class BurraController extends Controller
             }
             
             // --- INTEGRACIÓN FUDA ---
-            // Enviamos el pedido a FUDA de forma asíncrona o directa.
-            // Para no bloquear la respuesta al cliente si la API está lenta, idealmente usaríamos Queues.
-            // Pero por simplicidad requerida:
-            $this->sendOrderToFuda($order);
+            // DESACTIVADO: El pedido se enviará a FUDA solo cuando se apruebe desde el dashboard
+            // $this->sendOrderToFuda($order);
             // ------------------------
 
             return response()->json([
@@ -248,6 +246,9 @@ class BurraController extends Controller
 
         if ($request->status === 'completed' && $order->customer_phone) {
             $this->sendMessageToMeta($order->customer_phone, "👨‍🍳🔥 Su pedido se encuentra en la cocina.");
+            
+            // Enviar pedido a FUDO cuando se aprueba
+            $this->sendOrderToFuda($order);
         }
 
         if ($request->status === 'cancelled') {
@@ -661,11 +662,8 @@ class BurraController extends Controller
     {
         // ---------------- CONFIGURACIÓN ----------------
         // @TODO: Reemplazar con las credenciales reales
-        $clientId = env('FUDA_CLIENT_ID', 'MDAwMDI6MzE1Njk5');
-        $clientSecret = env('FUDA_CLIENT_SECRET', 'aDnXVFxFXkUUPJWpAKmohi5Q');
-        $authString = base64_encode("{$clientId}:{$clientSecret}");
-
-        $fudaBaseUrl = env('FUDA_API_URL', 'https://api.fu.do/v1alpha1');
+        $clientId = env('FUDA_CLIENT_ID');
+        $clientSecret = env('FUDA_CLIENT_SECRET');
         // -----------------------------------------------
 
         try {

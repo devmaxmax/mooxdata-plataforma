@@ -413,7 +413,86 @@
 
     <script src="{{ asset('burra/js/lazyload.js') }}"></script>
 
-    <script src="{{ asset('burra/js/app.js') }}" ?v={{ time() }}></script>
+    <script src="{{ asset('burra/js/app.js') }}?v={{ time() }}"></script>
+
+    <script>
+        function checkOpeningHours() {
+            // Horario Argentina
+            const now = new Date();
+            const options = {
+                timeZone: 'America/Argentina/Buenos_Aires',
+                hour12: false,
+                weekday: 'narrow',
+                hour: 'numeric',
+                minute: 'numeric'
+            };
+
+            // Obtenemos la fecha/hora en Argentina
+            const argentinaTime = new Date(now.toLocaleString('en-US', {
+                timeZone: 'America/Argentina/Buenos_Aires'
+            }));
+            const day = argentinaTime.getDay(); // 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
+            const hour = argentinaTime.getHours();
+            const minutes = argentinaTime.getMinutes();
+
+            // Días abiertos: Miércoles(3), Jueves(4), Viernes(5), Sábado(6), Domingo(0)
+            const openDays = [0, 3, 4, 5, 6];
+
+            // Horario abierto: 20:00 a 00:00 (hasta las 23:59)
+            // Nota: Si el horario pasara de medianoche, la lógica sería diferente.
+            // Aquí asumimos cierre a las 00:00 exactas (o 23:59).
+            const isOpenTime = hour >= 20 && hour <= 23;
+
+            const isOpenDay = openDays.includes(day);
+
+            const isOpen = isOpenDay && isOpenTime;
+
+            const cartelCerrado = document.getElementById('popup_control_horario');
+            const botonEnviar = document.getElementById('footer_enviar');
+            const botonWhatsapp = document.querySelector('.whatsapp-floating-button');
+
+            if (isOpen) {
+                // ABIERTO
+                if (cartelCerrado) cartelCerrado.style.display = 'none';
+                if (botonEnviar) botonEnviar.style.pointerEvents = 'auto';
+                // Nota: footer_enviar tiene display:none por defecto y se muestra por JS cuando hay pedidos, 
+                // así que solo controlamos pointer-events o visibilidad si fuera necesario, 
+                // pero la lógica principal de mostrarlo está en app.js según el carrito.
+
+                if (botonWhatsapp) botonWhatsapp.style.display = 'block';
+
+                // Habilitar clicks
+                document.body.classList.remove('store-closed');
+            } else {
+                // CERRADO
+                if (cartelCerrado) {
+                    cartelCerrado.style.display = 'block';
+                    // Aseguramos que se vea encima de todo
+                    cartelCerrado.style.position = 'fixed';
+                    cartelCerrado.style.top = '50%';
+                    cartelCerrado.style.left = '50%';
+                    cartelCerrado.style.transform = 'translate(-50%, -50%)';
+                    cartelCerrado.style.zIndex = '9999';
+                    cartelCerrado.style.backgroundColor = 'rgba(0,0,0,0.9)';
+                    cartelCerrado.style.color = 'white';
+                    cartelCerrado.style.padding = '20px';
+                }
+
+                if (botonEnviar) botonEnviar.style.display = 'none'; // Forzar oculto
+
+                if (botonWhatsapp) botonWhatsapp.style.display = 'none';
+
+                // Clase auxiliar por si queremos estilos extra
+                document.body.classList.add('store-closed');
+            }
+        }
+
+        // Ejecutar al cargar y cada minuto
+        document.addEventListener('DOMContentLoaded', function() {
+            checkOpeningHours();
+            setInterval(checkOpeningHours, 60000);
+        });
+    </script>
 
 </body>
 
