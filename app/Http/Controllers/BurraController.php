@@ -232,7 +232,7 @@ class BurraController extends Controller
                 Log::info("Pedido #{$order->id} auto-cancelado por antigüedad (>30 min) desde getOrders.");
 
                 // Intentar cancelar en FUDA
-                $this->cancelOrderInFuda($order->id);
+                // $this->cancelOrderInFuda($order->id); // Temporalmente desactivado
             }
         } catch (\Exception $e) {
             // Silencioso para no romper la API de getOrders
@@ -251,7 +251,7 @@ class BurraController extends Controller
         }
 
         if ($request->status === 'cancelled') {
-            $this->cancelOrderInFuda($id);
+            // $this->cancelOrderInFuda($id); // Temporalmente desactivado
         }
 
         return response()->json(['success' => true]);
@@ -260,7 +260,7 @@ class BurraController extends Controller
     public function destroyOrder($id)
     {
         // --- INTEGRACIÓN FUDA ---
-        $this->cancelOrderInFuda($id);
+        // $this->cancelOrderInFuda($id); // Temporalmente desactivado
         // ------------------------
 
         $order = BurraOrder::findOrFail($id);
@@ -534,9 +534,8 @@ class BurraController extends Controller
 
     private function sendOrderToFuda(BurraOrder $order)
     {
-        // ---------------- CONFIGURACIÓN ----------------
-        $fudaBaseUrl = env('FUDA_API_URL', 'https://api.fu.do/v1alpha1'); 
-        $priceListId = env('FUDA_PRICELIST_ID', '1'); 
+        //---------------- CONFIGURACIÓN ----------------
+        $fudaBaseUrl = env('FUDA_API_URL', 'https://integrations.fu.do/fudo'); 
         
         $token = $this->getFudaToken();
 
@@ -547,57 +546,16 @@ class BurraController extends Controller
         }
         // -----------------------------------------------
 
-        $this->logFuda("Iniciando envío de pedido #{$order->id} a FUDA", ['customer' => $order->customer_name]);
+        $this->logFuda("Iniciando envío de pedido #{$order->id} a FUDA Integrations API", ['customer' => $order->customer_name]);
 
         try {
-            // 1. CREAR LA VENTA (SALE)
-            $salePayload = [
-                'data' => [
-                    'type' => 'Sale',
-                    'attributes' => [
-                        'saleType' => 'DELIVERY', // O 'TAKEAWAY', 'EAT-IN'
-                        'customerName' => $order->customer_name ?? 'Cliente Web',
-                        'comment' => $order->customer_note,
-                        // 'people' => 1
-                    ],
-                    'relationships' => [
-                        // Opcional: Si tuvieras 'customer', 'table', 'waiter' IDs reales
-                    ]
-                ]
-            ];
-
-            $this->logFuda("Payload crear Venta (POST /sales)", $salePayload);
-
-            $saleResponse = Http::withToken($token)
-                                ->post("{$fudaBaseUrl}/sales", $salePayload);
-
-            $this->logFuda("Respuesta crear Venta", [
-                'status' => $saleResponse->status(), 
-                'body' => $saleResponse->json() ?? $saleResponse->body()
-            ]);
-
-            if ($saleResponse->failed()) {
-                Log::error("Error al crear Sale en FUDA: " . $saleResponse->body());
-                $this->logFuda("FALLÓ creación de venta", null, 'error');
-                return;
-            }
-
-            $saleData = $saleResponse->json('data');
-            $saleId = $saleData['id'] ?? null;
-
-            if (!$saleId) {
-                Log::error("FUDA respondió éxito pero sin ID de venta.");
-                $this->logFuda("FALLÓ: Sin ID de venta en respuesta", null, 'error');
-                return;
-            }
-
-            Log::info("Venta creada en FUDA con ID: {$saleId}");
-
-            // 2. CREAR ITEMS ASOCIADOS A LA VENTA
+            // Cargar items del pedido
             if (!$order->relationLoaded('items')) {
                 $order->load('items');
             }
 
+            // Construir array de items
+            $items = [];
             foreach ($order->items as $item) {
                 $product = BurraProduct::find($item->product_id);
                 $codeFuda = $product ? $product->code_fuda : null;
@@ -608,53 +566,84 @@ class BurraController extends Controller
                     continue;
                 }
 
-                $itemPayload = [
-                    'data' => [
-                        'type' => 'Item',
-                        'attributes' => [
-                            'quantity' => (int) $item->quantity,
-                            'price' => (float) $item->price,
-                            // 'comment' => '' 
-                        ],
-                        'relationships' => [
-                            'product' => [
-                                'data' => [
-                                    'id' => (string) $codeFuda,
-                                    'type' => 'Product'
-                                ]
-                            ],
-                            'sale' => [
-                                'data' => [
-                                    'id' => (string) $saleId,
-                                    'type' => 'Sale'
-                                ]
-                            ],
-                            'priceList' => [
-                                'data' => [
-                                    'id' => (string) $priceListId,
-                                    'type' => 'PriceList'
-                                ]
-                            ]
-                        ]
-                    ]
+                // Añadir item según formato FUDA Integrations API
+                $items[] = [
+                    'comment' => $item->comment ?? '',
+                    'quantity' => (int) $item->quantity,
+                    'price' => (float) $item->price,
+                    'product' => [
+                        'id' => (int) $codeFuda
+                    ],
+                    'subitems' => [] // Vacío por ahora, puede extenderse si hay modificadores
                 ];
-
-                $this->logFuda("Agregando Item '{$item->product_name}' (Code: $codeFuda)", $itemPayload);
-
-                $itemResponse = Http::withToken($token)
-                                    ->post("{$fudaBaseUrl}/items", $itemPayload);
-
-                if ($itemResponse->failed()) {
-                    Log::error("Error al agregar Item (Prod ID: $codeFuda) a Sale #{$saleId}: " . $itemResponse->body());
-                    $this->logFuda("FALLÓ agregar Item", ['response' => $itemResponse->body()], 'error');
-                } else {
-                    Log::info("Item agregado a FUDA (Sale #{$saleId}, Prod #{$codeFuda})");
-                    $this->logFuda("Item agregado OK");
-                }
             }
 
-            Log::info("Sincronización con FUDA completada para pedia #{$order->id}");
-            $this->logFuda("FIN Sincronización Pedido #{$order->id}");
+            // Si no hay items válidos, no enviamos
+            if (empty($items)) {
+                $this->logFuda("Pedido #{$order->id} no tiene items con code_fuda válido. No se envía a FUDA.", null, 'warning');
+                return;
+            }
+
+            // Mapear método de pago a ID (ajustar según IDs reales de FUDA)
+            $paymentMethodMap = [
+                'efectivo' => 1,
+                'transferencia' => 2,
+                'billetera' => 3,
+                'tarjeta' => 4,
+            ];
+            
+            $paymentMethodId = $paymentMethodMap[strtolower($order->payment_method)] ?? 1;
+
+            // Construir payload según documentación de FUDA Integrations API
+            $payload = [
+                'order' => [
+                    'comment' => $order->customer_note ?? '',
+                    'customer' => [
+                        'email' => 'cliente@burra.com', // Podríamos pedirlo en el formulario
+                        'phone' => $order->customer_phone ?? 'N/A',
+                        'name' => $order->customer_name ?? 'Cliente Web'
+                    ],
+                    'discounts' => [],
+                    'externalId' => (string) $order->id, // ID local del pedido
+                    'items' => $items,
+                    'payment' => [
+                        'paymentMethod' => [
+                            'id' => $paymentMethodId
+                        ],
+                        'total' => (float) $order->total
+                    ],
+                    'shippingCost' => 0,
+                    'type' => 'delivery', // O 'pickup', 'dine-in'
+                    'typeOptions' => [
+                        'expectedTime' => Carbon::now()->addMinutes(45)->toIso8601String(),
+                        'address' => $order->customer_address ?? 'Sin dirección'
+                    ]
+                ]
+            ];
+
+            $this->logFuda("Payload crear Pedido (POST /orders)", $payload);
+
+            // Enviar a FUDO con header de autorización custom
+            $response = Http::withHeaders([
+                    'Fudo-External-App-Authorization' => 'Bearer ' . $token,
+                    'Content-Type' => 'application/json'
+                ])
+                ->post("{$fudaBaseUrl}/orders", $payload);
+
+            $this->logFuda("Respuesta de FUDA", [
+                'status' => $response->status(), 
+                'body' => $response->json() ?? $response->body()
+            ]);
+
+            if ($response->failed()) {
+                Log::error("Error al crear Order en FUDA: " . $response->body());
+                $this->logFuda("FALLÓ creación de pedido en FUDA", ['response' => $response->body()], 'error');
+                return;
+            }
+
+            $responseData = $response->json();
+            Log::info("Pedido #{$order->id} enviado exitosamente a FUDA", $responseData);
+            $this->logFuda("ÉXITO: Pedido enviado a FUDA", $responseData);
 
         } catch (\Exception $e) {
             Log::error("Excepción al enviar pedido #{$order->id} a FUDA: " . $e->getMessage());
@@ -718,43 +707,57 @@ class BurraController extends Controller
 
     /**
      * Obtiene el token de acceso de Fudo, usando caché para respetar la expiración.
+     * HARDCODEADO TEMPORALMENTE PARA TESTING
      */
     private function getFudaToken()
     {
         // Retornar token en caché si existe
         if (Cache::has('fuda_access_token')) {
+            Log::info('[FUDO AUTH] Token obtenido desde caché');
             return Cache::get('fuda_access_token');
         }
 
-        $apiKey = env('FUDA_CLIENT_ID');     // En Fudo esto es el "API Key" o User
-        $apiSecret = env('FUDA_CLIENT_SECRET'); // En Fudo esto es el "API Secret"
-        $authUrl = 'https://auth.fu.do/api';
+        // CREDENCIALES HARDCODEADAS DE PRODUCCIÓN (TEMPORAL PARA TESTING)
+        $clientId = 'MDAwMDQ6MzE1Njk5';
+        $clientSecret = '0xQd9y0aTFNVo1T1SmVj5JAE';
+        $authUrl = 'https://integrations.fu.do/fudo/auth';
+
+        Log::info('[FUDO AUTH] Obteniendo nuevo token de FUDO', [
+            'url' => $authUrl,
+            'clientId' => $clientId
+        ]);
 
         try {
             $response = Http::post($authUrl, [
-                'apiKey' => $apiKey,
-                'apiSecret' => $apiSecret,
+                'clientId' => $clientId,
+                'clientSecret' => $clientSecret,
+            ]);
+
+            Log::info('[FUDO AUTH] Respuesta auth', [
+                'status' => $response->status(),
+                'body' => $response->body()
             ]);
 
             if ($response->failed()) {
-                Log::error('Error obteniendo token Fudo: ' . $response->body());
+                Log::error('[FUDO AUTH] Error obteniendo token Fudo: ' . $response->body());
                 return null;
             }
 
             $data = $response->json();
             $token = $data['token'] ?? null;
-            // $exp = $data['exp'] ?? null; // Timestamp epoch
 
             if ($token) {
+                Log::info('[FUDO AUTH] Token obtenido exitosamente, guardando en caché por 23 horas');
                 // Guardamos en caché por 23 horas (un poco menos de 24 para margen de error)
                 Cache::put('fuda_access_token', $token, now()->addHours(23));
                 return $token;
             }
 
+            Log::error('[FUDO AUTH] Respuesta exitosa pero sin token en la data');
             return null;
 
         } catch (\Exception $e) {
-            Log::error('Excepción obteniendo token Fudo: ' . $e->getMessage());
+            Log::error('[FUDO AUTH] Excepción obteniendo token Fudo: ' . $e->getMessage());
             return null;
         }
     }

@@ -143,8 +143,8 @@
 
             <p>
                 <label id='pregunta_3_label'>¿Algun dato adicional sobre el pedido o su
-                    dirección?:*</label>
-                <textarea class="form-control" required placeholder="" name="pr_preg3" id="pregunta_3_respuesta" cols="30"
+                    dirección?</label>
+                <textarea class="form-control" placeholder="" name="pr_preg3" id="pregunta_3_respuesta" cols="30"
                     rows="5"></textarea>
             </p>
 
@@ -153,8 +153,7 @@
                 <select id="pregunta_4_respuesta" name="pr_preg4" class="form-control" required placeholder="">
                     <option value="">Seleccione</option>
                     <option value="efectivo">Efectivo</option>
-                    <option value="billetera">Billetera Virtual</option>
-                    <option value="tarjeta">Tarjeta Débito / Crédito</option>
+                    <option value="transferencia">Transferencia</option>
                 </select>
             </p>
 
@@ -324,8 +323,8 @@
         </div>
     </div>
 
-    <!-- https://wa.me/5493764865939 -->
-    <a href="https://wa.me/15551679111" class="whatsapp-floating-button" target="_blank">
+    <!-- WhatsApp Button -->
+    <a href="https://wa.me/5493764865939" class="whatsapp-floating-button" target="_blank">
         <img src="{{ asset('burra/images/whatsapp-icon.svg') }}" width="70">
     </a>
 

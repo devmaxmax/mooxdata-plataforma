@@ -89,7 +89,8 @@
                         <tr>
                             <th>Fecha</th>
                             <th>N° Pedido</th>
-                            <th>Cliente</th>
+                            <th>Nombre y Apellido</th>
+                            <th>Dirección</th>
                             <th>Detalle (Productos)</th>
                             <th>Estado Pago</th>
                             <th style="text-align: right;">Acciones</th>
@@ -103,7 +104,8 @@
                                 </td>
                                 <td style="font-weight: 700; color: var(--primary-dark);">#{{ $order->table_number }}
                                 </td>
-                                <td style="font-weight: 600;">Mesa {{ $order->table_number }}</td>
+                                <td style="font-weight: 600;">{{ $order->customer_name ?? 'N/A' }}</td>
+                                <td style="font-size: 13px; color: var(--text-light);">{{ $order->customer_address ?? 'N/A' }}</td>
                                 <td style="color: var(--text-light);">
                                     @foreach ($order->items as $item)
                                         <div>{{ $item->quantity }}x {{ $item->product_name ?? 'N/A' }}</div>

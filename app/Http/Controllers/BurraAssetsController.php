@@ -34,10 +34,15 @@ class BurraAssetsController extends Controller
 
         $fileContent = Storage::get($path);
 
-        return response($fileContent, 200, [
+        // Headers anti-caché agresivos especialmente para JS y CSS
+        $headers = [
             'Content-Type' => $contentType,
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-        ]);
+            'Cache-Control' => 'no-cache, no-store, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => 'Sat, 01 Jan 2000 00:00:00 GMT',
+        ];
+
+        return response($fileContent, 200, $headers);
         
         // OPCIÓN ALTERNATIVA (Más eficiente si usas response()->file):
         // return response()->file(storage_path("app/{$path}"), [
