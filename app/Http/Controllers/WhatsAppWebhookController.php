@@ -50,16 +50,25 @@ class WhatsAppWebhookController extends Controller
             
 
 
-            $entry = $payload['entry'][0]['changes'][0]['value']['messages'][0] ?? null;
+
+            $changeValue = $payload['entry'][0]['changes'][0]['value'] ?? [];
+            
+            // Si es un update de estado (sent, delivered, read), no es un mensaje. Lo ignoramos.
+            if (isset($changeValue['statuses'])) {
+                return response('EVENT_RECEIVED', 200);
+            }
+
+            $entry = $changeValue['messages'][0] ?? null;
 
             if (!$entry) {
-                Log::error('Payload inválido', ['payload' => $payload]);
+                // Usamos json_encode para evitar el error "Over 9 levels deep" si el array es muy profundo
+                Log::error('Payload inválido o inesperado: ' . json_encode($payload));
                 return response('EVENT_RECEIVED', 200);
             }
 
             $userPhone = $entry['from']; 
 
-            // Parche de prueba - hijo de puta
+            //Parche de prueba - hijo de puta
             if ($userPhone == '5493764677756') {
                 $userPhone = '54376154677756';
             } elseif ($userPhone == '5493764999618') {
@@ -155,18 +164,21 @@ class WhatsAppWebhookController extends Controller
 
             if (!in_array($now->dayOfWeek, $allowedDays)) {
                  // Día no permitido (Lunes/Martes)
-                 return response('EVENT_RECEIVED', 200); 
+                 // return response('EVENT_RECEIVED', 200); 
             }
 
             if (!$now->between($startTime, $endTime)) {
                  // Fuera de horario
-                 return response('EVENT_RECEIVED', 200); 
+                 // return response('EVENT_RECEIVED', 200); 
             }
 
             // Verificar Suspensión Manual
             if (Cache::has('burra_bot_suspended_' . $userPhone)) {
+                Log::info("Bot suspended for user: $userPhone");
                 return response('EVENT_RECEIVED', 200);
             }
+
+            Log::info("Proceeding after suspension check for user: $userPhone with message: " . $userMessage);
 
             // 3.5. Detección de Saludo / Menu (ByPass LLM)
             $isGreeting = preg_match('/^(hola|buenas|buen dia|buenos dias|buenas tardes|buenas noches|menu|carta|pedido|pedir|quiero pedir)/i', trim($userMessage));

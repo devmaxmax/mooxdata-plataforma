@@ -26,6 +26,7 @@
                 <button class="toggle-btn active" onclick="switchView('pedidos')">Pedidos</button>
                 <button class="toggle-btn" onclick="switchView('productos')">Productos</button>
                 <button class="toggle-btn" onclick="switchView('categorias')">Categorias</button>
+                <button class="toggle-btn" onclick="switchView('fudo')">Códigos Fudo</button>
                 <button class="toggle-btn" onclick="switchView('whatsapp')">Whatsapp</button>
             </div>
 
@@ -105,7 +106,8 @@
                                 <td style="font-weight: 700; color: var(--primary-dark);">#{{ $order->table_number }}
                                 </td>
                                 <td style="font-weight: 600;">{{ $order->customer_name ?? 'N/A' }}</td>
-                                <td style="font-size: 13px; color: var(--text-light);">{{ $order->customer_address ?? 'N/A' }}</td>
+                                <td style="font-size: 13px; color: var(--text-light);">
+                                    {{ $order->customer_address ?? 'N/A' }}</td>
                                 <td style="color: var(--text-light);">
                                     @foreach ($order->items as $item)
                                         <div>{{ $item->quantity }}x {{ $item->product_name ?? 'N/A' }}</div>
@@ -209,6 +211,41 @@
                     </thead>
                     <tbody id="table-categories">
                         {{-- JS will render here --}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-fudo" class="view-section">
+            <div class="card">
+                <div
+                    style="padding: 15px; background: #e0e7ff; color: #3730a3; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>
+                        <i class="ph ph-info" style="vertical-align: middle; margin-right: 5px;"></i>
+                        Listado de productos obtenidos directamente desde FUDO. Usa estos códigos para vincular tus
+                        productos.
+                    </span>
+                    <button class="btn-action" onclick="loadFudoProducts()"
+                        style="background: #fff; color: #3730a3; border: 1px solid #c7d2fe;">
+                        <i class="ph ph-arrows-clockwise"></i> Actualizar
+                    </button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th style="text-align: right;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-fudo-products">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #666;">
+                                Toca "Actualizar" para cargar los datos...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -365,6 +402,64 @@
         const categories = @json($categories);
         renderProducts();
         renderCategories();
+
+        // Fudo Logic
+        function loadFudoProducts() {
+            const tbody = document.getElementById('table-fudo-products');
+            tbody.innerHTML =
+                '<tr><td colspan="5" style="text-align: center; padding: 20px;">Cargando productos de Fudo...</td></tr>';
+
+            fetch("{{ route('burra.fudo.products') }}")
+                .then(res => res.json())
+                .then(data => {
+                    tbody.innerHTML = '';
+                    if (!data || data.length === 0) {
+                        tbody.innerHTML =
+                            '<tr><td colspan="5" style="text-align: center; padding: 20px;">No se encontraron productos en Fudo.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        // Estructura depende de la respuesta de Fudo API. Ajustaremos si es necesario.
+                        // Asumimos: id, name, category, price
+                        const row = `
+                            <tr>
+                                <td style="font-weight: 700;">${item.id}</td>
+                                <td>${item.name}</td>
+                                <td>${item.category ? item.category.name : '-'}</td>
+                                <td>$${item.price}</td>
+                                <td style="text-align: right;">
+                                    <button class="icon-action" title="Copiar Código" onclick="copyToClipboard('${item.id}')">
+                                        <i class="ph ph-copy"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    tbody.innerHTML =
+                        '<tr><td colspan="5" style="text-align: center; padding: 20px; color: red;">Error cargando productos. Revisa la consola.</td></tr>';
+                });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+                toast.fire({
+                    icon: 'success',
+                    title: 'Código copiado: ' + text
+                });
+            });
+        }
+
 
         // View Persistence
         const initialView = "{{ session('view', 'pedidos') }}";

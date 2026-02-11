@@ -61,6 +61,7 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
     Route::get('/panel/api/whatsapp/messages/{phone}', [BurraController::class, 'getWhatsAppMessages'])->name('whatsapp.messages');
     Route::post('/panel/api/whatsapp/send', [BurraController::class, 'sendWhatsAppMessage'])->name('whatsapp.send');
     Route::post('/panel/api/whatsapp/resume', [BurraController::class, 'resumeBot'])->name('whatsapp.resume');
+    Route::get('/panel/api/fudo/products', [BurraController::class, 'getFudoProducts'])->name('fudo.products');
         
         Route::get('assets/{type}/{filename}', [BurraAssetsController::class, 'serve'])
          ->where('type', 'css|js|images|img') // Permitimos css, js e imágenes

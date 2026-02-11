@@ -707,6 +707,41 @@ class BurraController extends Controller
         }
     }
 
+    /**
+     * Obtiene los productos desde FUDO.
+     */
+    public function getFudoProducts()
+    {
+        $fudaBaseUrl = env('FUDA_API_URL');
+        $token = $this->getFudaToken();
+
+        if (!$token) {
+            return response()->json(['error' => 'No se pudo autenticar con FUDO'], 500);
+        }
+
+        try {
+            // Asumimos endpoint /products para Integrations API. 
+            // Si es diferente, se ajustará.
+            $response = Http::withHeaders([
+                'Fudo-External-App-Authorization' => 'Bearer ' . $token,
+                'Content-Type' => 'application/json'
+            ])->get("{$fudaBaseUrl}/products");
+
+            if ($response->failed()) {
+                Log::error("Error obteniendo productos de FUDO: " . $response->body());
+                return response()->json(['error' => 'Error al consultar FUDO', 'details' => $response->json()], 502);
+            }
+
+            // Según indicación del usuario, la respuesta viene en 'products'
+            $products = $response->json()['products'] ?? $response->json()['data'] ?? [];
+            return response()->json($products);
+
+        } catch (\Exception $e) {
+            Log::error("Excepción al obtener productos de FUDO: " . $e->getMessage());
+            return response()->json(['error' => 'Error interno del servidor'], 500);
+        }
+    }
+
 
 
     /**
@@ -723,7 +758,11 @@ class BurraController extends Controller
 
         $clientId = env('FUDA_CLIENT_ID');
         $clientSecret = env('FUDA_CLIENT_SECRET');
-        $authUrl = env('FUDA_API_URL');
+        $clientId = env('FUDA_CLIENT_ID');
+        $clientSecret = env('FUDA_CLIENT_SECRET');
+        $baseUrl = env('FUDA_API_URL');
+        // Asegurar que la URL termine en /auth para la autenticación
+        $authUrl = rtrim($baseUrl, '/') . '/auth';
 
         Log::info('[FUDO AUTH] Obteniendo nuevo token de FUDO', [
             'url' => $authUrl,
