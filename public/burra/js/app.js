@@ -200,7 +200,7 @@ function controlar_horario() {
         // dia_de_la_semana = 0;
         switch (dia_de_la_semana) {
             case 0:
-                horario_string = '20:00-23:50';
+                horario_string = '19:00-23:50';
                 break;
             case 1:
                 horario_string = 'ESTAMOS CERRADOS';
@@ -209,16 +209,16 @@ function controlar_horario() {
                 horario_string = 'ESTAMOS CERRADOS';
                 break;
             case 3:
-                horario_string = '20:00-23:50';
+                horario_string = '19:00-23:50';
                 break;
             case 4:
-                horario_string = '20:00-23:50';
+                horario_string = '19:00-23:50';
                 break;
             case 5:
-                horario_string = '20:00-23:50';
+                horario_string = '19:00-23:50';
                 break;
             case 6:
-                horario_string = '20:00-23:50';
+                horario_string = '19:00-23:50';
                 break;
         }
 
@@ -1789,6 +1789,7 @@ function calcular_total() {
         // WhatsApp Message Generation
         g_pedido.preguntas = [];
         pedido += "*Nombre y Apellido(*)*\n_" + $("#pregunta_1_respuesta").val() + "_\n\n";
+        pedido += "*Teléfono(*)*\n_" + $("#pregunta_telefono_respuesta").val() + "_\n\n";
         pedido += "*" + $("#pregunta_2_label").text() + "*\n_" + $("#pregunta_2_respuesta").val() + "_\n\n";
         pedido += "*" + $("#pregunta_3_label").text() + "*\n_" + $("#pregunta_3_respuesta").val() + "_\n\n";
         pedido += "*" + $("#pregunta_4_label").text() + "*\n_" + $("#pregunta_4_respuesta").val() + "_\n\n";
@@ -1944,6 +1945,7 @@ function finalizar_pedido() {
 
     g_pedido.preguntas = [];
     g_pedido.preguntas.push({ pregunta: 'Nombre y Apellido(*)', respuesta: $("#pregunta_1_respuesta").val() });
+    g_pedido.preguntas.push({ pregunta: 'Teléfono(*)', respuesta: $("#pregunta_telefono_respuesta").val() });
     g_pedido.preguntas.push({ pregunta: $("#pregunta_2_label").text(), respuesta: $("#pregunta_2_respuesta").val() });
     g_pedido.preguntas.push({ pregunta: $("#pregunta_3_label").text(), respuesta: $("#pregunta_3_respuesta").val() });
     g_pedido.preguntas.push({ pregunta: $("#pregunta_4_label").text(), respuesta: $("#pregunta_4_respuesta").val() });
@@ -1967,8 +1969,17 @@ function finalizar_pedido() {
                 document.body.dispatchEvent(new CustomEvent('purchase'));
                 localStorage.removeItem('pedido-burracomidamexicana');
 
-                // Redirect to WhatsApp
-                location.href = url_pedido;
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Gracias por tu compra!',
+                    text: 'Te estamos redirigiendo a WhatsApp para finalizar el pedido...',
+                    timer: 3000,
+                    showConfirmButton: false
+                }).then(() => {
+                    // Redirect to WhatsApp
+                    location.href = url_pedido;
+                });
             } else {
                 Swal.fire({
                     icon: 'error',

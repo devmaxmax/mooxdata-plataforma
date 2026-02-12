@@ -34,7 +34,7 @@
             csrf_token: "{{ csrf_token() }}",
             productos: @json($productsJson),
             categorias: @json($categoriesJson),
-            telefono: '{{ $telefono ?? '15551676366' }}',
+            telefono: '{{ $telefono ?? '+5493764865939' }}',
             variedades_en_lista: true
         };
         // Legacy global variables support (during refactor transition)
@@ -137,6 +137,12 @@
             </p>
 
             <p>
+                <label id='pregunta_telefono_label'>Teléfono(*)</label> <input type="number" value=""
+                    id="pregunta_telefono_respuesta" name="pr_preg_telefono" class="form-control" required
+                    placeholder="Ej: 3764...">
+            </p>
+
+            <p>
                 <label id='pregunta_2_label'>Dirección(*)</label> <input type="text" value=""
                     id="pregunta_2_respuesta" name="pr_preg2" class="form-control" required placeholder="">
             </p>
@@ -159,7 +165,7 @@
 
             <p style='text-align:center;font-size:18px;'>GRACIAS POR ELEGIRNOS <BR> HORARIO
                 DE ATENCIÓN <BR> Miercoles
-                a Domingo de 20:00 a 23:50hs</p>
+                a Domingo de 19:00 a 23:50hs</p>
             <div id="preguntas_resumen" style="display:none;" class="preguntas-resumen">
             </div>
 
@@ -342,7 +348,7 @@
 
                     <div>
                         BURRA COMIDA MEXICANA<BR> Lunes y Martes cerrado<BR>Miercoles a
-                        Domingo de 20:00 a
+                        Domingo de 19:00 a
                         23:50<br>Jujuy 1874, Posadas Misiones
                         <br><span class="fab fa-instagram">&nbsp;</span><a
                             href="https://www.instagram.com/burra.comidamexicana"
@@ -436,7 +442,7 @@
 
             const openDays = [0, 3, 4, 5, 6];
 
-            const isOpenTime = hour >= 20 && hour <= 23;
+            const isOpenTime = hour >= 19 && hour <= 23;
 
             const isOpenDay = openDays.includes(day);
 

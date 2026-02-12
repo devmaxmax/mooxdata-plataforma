@@ -103,7 +103,9 @@ class BurraController extends Controller
             $metodoPago = $preguntas->where('pregunta', 'Forma de pago(*):')->first()['respuesta'] 
                          ?? $preguntas->where('pregunta', '¿Cómo abonás?')->first()['respuesta'] 
                          ?? '';
-            $telefono = $pedidoData['whatsapp'] ?? null;
+            $telefono = $preguntas->where('pregunta', 'Teléfono(*)')->first()['respuesta'] 
+                         ?? $pedidoData['whatsapp'] 
+                         ?? null;
 
             $total = $pedidoData['precio_final'] ?? 0;
 
@@ -148,7 +150,7 @@ class BurraController extends Controller
 
     public function index()
     {
-        $products = BurraProduct::with('category')->where('is_active', true)->get();
+        $products = BurraProduct::with('category')->where('is_active', true)->orderBy('name')->get();
         $categories = BurraCategory::all();
 
         $productsJson = $products->map(function ($product) {
