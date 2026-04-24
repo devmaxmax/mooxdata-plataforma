@@ -6,6 +6,10 @@ use Illuminate\Http\Request;
 use App\Models\RagData;
 use App\Services\llm\Deepseek;
 use App\Http\Requests\ChatRequest;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use App\Mail\ContactMail;
 
 class IndexController extends Controller
 {
@@ -23,12 +27,41 @@ class IndexController extends Controller
 
     public function sendMail(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => 'required',
             'email' => 'required|email',
             'message' => 'required',
             'g-recaptcha-response' => 'required',
+        ], [
+            'name.required' => 'El nombre de tu empresa es obligatorio.',
+            'email.required' => 'Tu correo electrónico es obligatorio.',
+            'email.email' => 'Debes ingresar un correo electrónico válido.',
+            'message.required' => 'El mensaje con tu desafío es obligatorio.',
+            'g-recaptcha-response.required' => 'Por favor, verifica que no eres un robot (reCAPTCHA).',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $validator->errors()->first()
+            ], 400);
+        }
+
+        // Verificar el reCAPTCHA con Google
+        $recaptchaSecret = env('RECAPTCHA_SECRET_KEY');
+        if ($recaptchaSecret) {
+            $response = Http::asForm()->post('https://www.google.com/recaptcha/api/siteverify', [
+                'secret' => $recaptchaSecret,
+                'response' => $request->input('g-recaptcha-response'),
+            ]);
+
+            if (!$response->json('success')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Verificación reCAPTCHA fallida. Por favor, intenta de nuevo.'
+                ], 400);
+            }
+        }
 
         $data = [
             'name' => $request->name,
@@ -36,7 +69,9 @@ class IndexController extends Controller
             'message' => $request->message,
         ];
 
-        // Mail::to('nicolas@mooxdata.xyz')->send(new ContactMail($data));
+        // Se envía el correo
+        $toAddress = env('MAIL_FROM_ADDRESS', 'hablemos@mooxdata.xyz');
+        Mail::to($toAddress)->send(new ContactMail($data));
 
         return response()->json([
             'status' => 'success',

@@ -398,8 +398,291 @@ footer {
     color: #000;
 }
 
+/* --- AGENTES DE IA --- */
+.agents-section {
+    background: #08080f;
+    padding: 100px 10%;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.agents-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 50px;
+    align-items: center;
+}
+
+.agents-content {
+    flex: 1;
+    min-width: 300px;
+}
+
+.agents-content .subtitle {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-bottom: 10px;
+    font-weight: 300;
+}
+
+.agents-content .subtitle strong {
+    color: var(--secondary);
+    font-weight: 700;
+}
+
+.agents-content .description {
+    font-size: 1.1rem;
+    color: #ccc;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.agents-features-list {
+    margin-bottom: 40px;
+}
+
+.agents-features-list li {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: #ddd;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: 0.3s;
+}
+
+.agents-features-list li:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary);
+    transform: translateX(10px);
+}
+
+.agents-features-list li i {
+    color: #00f2ff;
+    font-size: 1.5rem;
+    margin-top: 2px;
+}
+
+.agents-features-list li strong {
+    color: white;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.agents-image {
+    flex: 1;
+    min-width: 300px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.agents-image img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(112, 0, 255, 0.3);
+    border: 1px solid rgba(112, 0, 255, 0.5);
+    position: relative;
+    z-index: 2;
+}
+
+.floating-icons i {
+    position: absolute;
+    color: var(--primary);
+    font-size: 2rem;
+    z-index: 3;
+    animation: float 4s ease-in-out infinite;
+    text-shadow: 0 0 10px var(--primary);
+}
+
+.floating-icons .float-1 { top: 10%; left: -5%; animation-delay: 0s; }
+.floating-icons .float-2 { top: 70%; left: -10%; animation-delay: 1s; font-size: 2.5rem; color: var(--secondary); text-shadow: 0 0 10px var(--secondary); }
+.floating-icons .float-3 { top: 20%; right: -5%; animation-delay: 2s; }
+.floating-icons .float-4 { bottom: 10%; right: -10%; animation-delay: 3s; font-size: 1.8rem; }
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0px); }
+}
+
+/* --- BUSINESS INTELLIGENCE --- */
+.bi-section {
+    background: #050508;
+    padding: 100px 10%;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+}
+
+.bi-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.bi-subtitle {
+    font-size: 1.2rem;
+    color: #ccc;
+    margin-bottom: 50px;
+    margin-top: -30px;
+}
+
+.bi-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+    margin-bottom: 60px;
+}
+
+.bi-feature-card {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 30px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: 0.3s;
+    text-align: left;
+}
+
+.bi-feature-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary);
+    transform: translateY(-5px);
+}
+
+.bi-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+.bi-feature-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.bi-feature-card .highlight-text {
+    color: var(--primary);
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.bi-feature-card p {
+    color: #aaa;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.bi-dashboard-image {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+/* --- SOFTWARE A MEDIDA --- */
+.software-section {
+    background: #08080f;
+    padding: 100px 10%;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.software-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+}
+
+.software-header {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.software-text {
+    flex: 1;
+    min-width: 300px;
+}
+
+.software-text .description {
+    font-size: 1.15rem;
+    color: #ccc;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.software-text .highlight-text {
+    font-size: 1.15rem;
+    color: var(--primary);
+    font-weight: bold;
+    line-height: 1.6;
+}
+
+.software-image-top {
+    flex: 1;
+    min-width: 300px;
+    display: flex;
+    justify-content: center;
+}
+
+.software-image-top img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(112, 0, 255, 0.3);
+    border: 1px solid rgba(112, 0, 255, 0.5);
+}
+
+.software-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+}
+
+.sw-feature-card {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sw-feature-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--secondary);
+    transform: translateY(-5px);
+}
+
+.sw-icon {
+    font-size: 1.8rem;
+    color: var(--secondary);
+}
+
+.sw-feature-card h4 {
+    font-size: 1.2rem;
+    color: white;
+}
+
+.sw-feature-card p {
+    color: #aaa;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
+    .software-header {
+        flex-direction: column-reverse;
+    }
     .hero-content h1 {
         font-size: 2.5rem;
     }
@@ -418,5 +701,9 @@ footer {
         width: 90%;
         right: 5%;
         bottom: 90px;
+    }
+
+    .agents-container {
+        flex-direction: column-reverse;
     }
 }

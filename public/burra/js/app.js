@@ -187,7 +187,7 @@ function controlar_horario() {
     let abierto = true;
 
     // Si el control horario está desactivado, entonces el local siempre está abierto
-    let control_horario = true;
+    let control_horario = false;
     // console.log('Control horario? ', control_horario);
 
     if (control_horario) {

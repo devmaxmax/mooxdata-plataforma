@@ -4,8 +4,15 @@ window.onSubmit = function (token) {
 
     formData.append('g-recaptcha-response', token);
 
-    fetch('send_mail.php', {
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    fetch('/send_mail', {
         method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
         body: formData
     })
         .then(response => response.json())
@@ -14,7 +21,7 @@ window.onSubmit = function (token) {
                 alert(data.message);
                 form.reset();
             } else {
-                alert('Error: ' + data.message);
+                alert('Error: ' + (data.message || 'Error de validación.'));
             }
         })
         .catch(error => {

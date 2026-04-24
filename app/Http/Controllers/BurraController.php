@@ -575,8 +575,9 @@ class BurraController extends Controller
                 $order->load('items');
             }
 
-            // Construir array de items
-            $items = [];
+            // Construir array de items AGREGADOS por code_fuda
+            $aggregatedItems = [];
+
             foreach ($order->items as $item) {
                 $product = BurraProduct::find($item->product_id);
                 $codeFuda = $product ? $product->code_fuda : null;
@@ -587,17 +588,27 @@ class BurraController extends Controller
                     continue;
                 }
 
-                // Añadir item según formato FUDA Integrations API
-                $items[] = [
-                    'comment' => $item->comment ?? '',
-                    'quantity' => (int) $item->quantity,
-                    'price' => (float) $item->price,
-                    'product' => [
-                        'id' => (int) $codeFuda
-                    ],
-                    'subitems' => [] // Vacío por ahora, puede extenderse si hay modificadores
-                ];
+                // Si ya existe este code_fuda, sumamos la cantidad
+                if (isset($aggregatedItems[$codeFuda])) {
+                    $aggregatedItems[$codeFuda]['quantity'] += (int) $item->quantity;
+                    // Opcional: concatenar comentarios si fuera necesario
+                    // $aggregatedItems[$codeFuda]['comment'] .= " | " . ($item->comment ?? '');
+                } else {
+                    // Si no existe, lo creamos
+                    $aggregatedItems[$codeFuda] = [
+                        'comment' => $item->comment ?? '',
+                        'quantity' => (int) $item->quantity,
+                        'price' => (float) $item->price,
+                        'product' => [
+                            'id' => (int) $codeFuda
+                        ],
+                        'subitems' => [] // Vacío por ahora, puede extenderse si hay modificadores
+                    ];
+                }
             }
+            
+            // Convertir hash map a array indexado para la API
+            $items = array_values($aggregatedItems);
 
             // Si no hay items válidos, no enviamos
             if (empty($items)) {
