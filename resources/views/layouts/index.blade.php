@@ -289,10 +289,14 @@
         <p style="text-align: center; color: #aaa;">Empresas que ya están optimizando su futuro.</p>
         <div class="clients-container">
             <div class="client-logo">
-                <img src="{{ asset('images/alvarenga_srl.png') }}" width="260px" alt="Alvarenga SRL">
+                <a href="https://www.instagram.com/diegoalvarengasrl_/" target="_blank">
+                    <img src="{{ asset('images/alvarenga_srl.png') }}" width="260px" alt="Alvarenga SRL">
+                </a>
             </div>
             <div class="client-logo">
-                <img src="{{ asset('images/result_burra.jpg') }}" width="180px" alt="Burra Comida Mexicana">
+                <a href="https://www.instagram.com/burra.comidamexicana/" target="_blank">
+                    <img src="{{ asset('images/result_burra.jpg') }}" width="180px" alt="Burra Comida Mexicana">
+                </a>
             </div>
 
 
@@ -310,6 +314,10 @@
                 <div class="info-item">
                     <i class="fa-brands fa-instagram"></i>
                     <p><a href="https://www.instagram.com/mooxdata_ia" target="_blank">mooxdata_ia</a></p>
+                </div>
+                <div class="info-item">
+                    <i class="fa-brands fa-facebook"></i>
+                    <p><a href="https://www.facebook.com/mooxdata" target="_blank">mooxdata</a></p>
                 </div>
                 <div class="info-item">
                     <i class="fa-solid fa-location-dot"></i>
