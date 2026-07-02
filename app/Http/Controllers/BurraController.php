@@ -481,6 +481,25 @@ class BurraController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = Auth::guard('burra_admin')->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'La contraseña actual no es correcta.']);
+        }
+
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+        $user->save();
+
+        return redirect()->route('burra.dashboard')->with('success', 'Contraseña actualizada correctamente.');
+    }
+
     public function logout(Request $request)
     {
         Auth::guard('burra_admin')->logout();

@@ -41,6 +41,11 @@
                     Nueva Categoría
                 </button>
 
+                <button class="btn-add" onclick="toggleProfileModal(true)" style="background-color: #3b82f6; border-color: #3b82f6; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph ph-user" style="font-size: 20px;"></i>
+                    Perfil
+                </button>
+
                 <form action="{{ route('burra.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="btn-add"
@@ -52,6 +57,15 @@
                 <div id="spacer" style="width: 140px; display: none;"></div>
             </div>
         </div>
+
+        @if (session('success'))
+            <div class="card" style="margin-bottom: 20px; background-color: #f0fdf4; border: 1px solid #4ade80;">
+                <div style="color: #166534; font-weight: 500;">
+                    <i class="ph ph-check-circle" style="vertical-align: middle; margin-right: 5px;"></i>
+                    {{ session('success') }}
+                </div>
+            </div>
+        @endif
 
         @if ($errors->any())
             <div class="card" style="margin-bottom: 20px; background-color: #fef2f2; border: 1px solid #f87171;">
@@ -66,15 +80,17 @@
                     </ul>
                 </div>
             </div>
-
-            <script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    @if ($errors->has('name') || $errors->has('price') || $errors->has('category_id'))
-                        toggleModal(true);
-                    @endif
-                });
-            </script>
         @endif
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                @if ($errors->has('name') || $errors->has('price') || $errors->has('category_id'))
+                    if (typeof toggleModal === 'function') toggleModal(true);
+                @elseif ($errors->has('current_password') || $errors->has('new_password'))
+                    if (typeof toggleProfileModal === 'function') toggleProfileModal(true);
+                @endif
+            });
+        </script>
 
         <div id="view-pedidos" class="view-section active">
             <div class="card">
@@ -387,6 +403,44 @@
                     <button type="submit" class="btn-action btn-approve" id="catBtnSubmit"
                         style="padding: 10px 24px;">
                         Guardar Categoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Profile Modal --}}
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 class="modal-title">Perfil de Usuario</h3>
+                <i class="ph ph-x modal-close" onclick="toggleProfileModal(false)"></i>
+            </div>
+            <div style="padding-bottom: 15px; font-weight: 500;">
+                Usuario actual: <span style="color: var(--primary);">{{ Auth::guard('burra_admin')->user()->name }}</span>
+            </div>
+            <form id="profileForm" method="POST" action="{{ route('burra.profile.update') }}">
+                @csrf
+                <div class="form-group">
+                    <label class="form-label">Contraseña Actual</label>
+                    <input type="password" class="form-input" name="current_password" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nueva Contraseña</label>
+                    <input type="password" class="form-input" name="new_password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Verificar Nueva Contraseña</label>
+                    <input type="password" class="form-input" name="new_password_confirmation" required minlength="8">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-action"
+                        style="background: var(--border-light); color: var(--text-main); padding: 10px 20px; font-weight: 600;"
+                        onclick="toggleProfileModal(false)">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-action btn-approve" style="padding: 10px 24px;">
+                        Actualizar Contraseña
                     </button>
                 </div>
             </form>

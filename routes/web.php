@@ -43,6 +43,7 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
 
     Route::middleware('auth:burra_admin')->group(function () {
         Route::get('/panel/dashboard', [BurraController::class, 'dashboard'])->name('dashboard');
+        Route::post('/panel/profile', [BurraController::class, 'updateProfile'])->name('profile.update');
         
         // Rutas de Productos
         Route::post('/panel/products', [BurraController::class, 'storeProduct'])->name('products.store');
