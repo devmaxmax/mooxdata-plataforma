@@ -261,6 +261,12 @@
                         <i class="ph ph-arrows-clockwise"></i> Actualizar
                     </button>
                 </div>
+                <div style="padding: 15px; border-bottom: 1px solid var(--border-light); background: #fdfbfb;">
+                    <div style="position: relative; max-width: 400px;">
+                        <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-lighter); font-size: 18px;"></i>
+                        <input type="text" id="searchFudo" class="form-input" style="padding-left: 36px;" placeholder="Buscar por Nombre o Código..." onkeyup="filterFudo()">
+                    </div>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -506,12 +512,31 @@
                         `;
                         tbody.innerHTML += row;
                     });
+                    
+                    filterFudo();
                 })
                 .catch(err => {
                     console.error(err);
                     tbody.innerHTML =
                         '<tr><td colspan="5" style="text-align: center; padding: 20px; color: red;">Error cargando productos. Revisa la consola.</td></tr>';
                 });
+        }
+
+        function filterFudo() {
+            const input = document.getElementById('searchFudo');
+            if (!input) return;
+            const term = input.value.toLowerCase();
+            const rows = document.querySelectorAll('#table-fudo-products tr');
+            rows.forEach(row => {
+                if (row.children.length < 5) return; // Skip "Loading..." row
+                const code = row.children[0]?.textContent.toLowerCase() || '';
+                const name = row.children[1]?.textContent.toLowerCase() || '';
+                if (code.includes(term) || name.includes(term)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         }
 
         function copyToClipboard(text) {
