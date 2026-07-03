@@ -609,14 +609,14 @@ class BurraController extends Controller
 
                 // Si ya existe este code_fuda, sumamos la cantidad
                 if (isset($aggregatedItems[$codeFuda])) {
-                    $aggregatedItems[$codeFuda]['quantity'] += (int) $item->quantity;
+                    $aggregatedItems[$codeFuda]['amount'] += (int) $item->quantity;
                     // Opcional: concatenar comentarios si fuera necesario
                     // $aggregatedItems[$codeFuda]['comment'] .= " | " . ($item->comment ?? '');
                 } else {
                     // Si no existe, lo creamos
                     $aggregatedItems[$codeFuda] = [
                         'comment' => $item->comment ?? '',
-                        'quantity' => (int) $item->quantity,
+                        'amount' => (int) $item->quantity,
                         'price' => (float) $item->price,
                         'product' => [
                             'id' => (int) $codeFuda

@@ -28,7 +28,8 @@ Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoW
 Route::get('/clear-cache', function() {
     Artisan::call('config:clear');
     Artisan::call('cache:clear');
-    return "Caché de configuración y aplicación eliminada correctamente.";
+    Artisan::call('view:clear');
+    return "Caché de configuración, vistas y aplicación eliminada correctamente.";
 });
 
 Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {

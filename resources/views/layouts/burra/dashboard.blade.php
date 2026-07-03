@@ -101,6 +101,12 @@
                         style="background:#e0e7ff; color:#3730a3; border:1px solid #c7d2fe; display:inline-block; padding: 2px 6px; font-size: 11px;">FUDO</span>,
                     indica que el pedido fue aprobado y enviado al sistema.
                 </div>
+                <div style="padding: 15px; border-bottom: 1px solid var(--border-light); background: #fdfbfb;">
+                    <div style="position: relative; max-width: 400px;">
+                        <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-lighter); font-size: 18px;"></i>
+                        <input type="text" id="searchPedidos" class="form-input" style="padding-left: 36px;" placeholder="Buscar por Nombre, Teléfono o Dirección..." onkeyup="filterPedidos()">
+                    </div>
+                </div>
                 <table>
                     <thead>
                         <tr>
@@ -164,6 +170,12 @@
 
         <div id="view-productos" class="view-section">
             <div class="card">
+                <div style="padding: 15px; border-bottom: 1px solid var(--border-light); background: #fdfbfb;">
+                    <div style="position: relative; max-width: 400px;">
+                        <i class="ph ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-lighter); font-size: 18px;"></i>
+                        <input type="text" id="searchProductos" class="form-input" style="padding-left: 36px;" placeholder="Buscar por Nombre o Tipo..." onkeyup="filterProductos()">
+                    </div>
+                </div>
                 <table>
                     <thead>
                         <tr>
