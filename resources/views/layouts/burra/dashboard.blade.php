@@ -484,7 +484,12 @@
             tbody.innerHTML =
                 '<tr><td colspan="5" style="text-align: center; padding: 20px;">Cargando productos de Fudo...</td></tr>';
 
-            fetch("{{ route('burra.fudo.products') }}")
+            const token = document.querySelector('meta[name="csrf-token"]')?.content;
+            fetch("{{ route('burra.fudo.products') }}", {
+                headers: {
+                    'X-CSRF-TOKEN': token
+                }
+            })
                 .then(res => res.json())
                 .then(data => {
                     tbody.innerHTML = '';
