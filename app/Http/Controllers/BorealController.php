@@ -28,7 +28,10 @@ class BorealController extends Controller
                     ->first();
 
         if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
-            session(['boreal_logged_in' => true]);
+            session([
+                'boreal_logged_in' => true,
+                'boreal_user_id' => $user->id
+            ]);
             return redirect()->route('boreal.dashboard');
         }
 
@@ -51,5 +54,43 @@ class BorealController extends Controller
         $logs = LogBot::orderBy('created_at', 'desc')->get();
 
         return view('boreal.dashboard', compact('messages', 'logs'));
+    }
+
+    public function changePassword(Request $request)
+    {
+        if (!session('boreal_logged_in')) {
+            return redirect()->route('boreal.login');
+        }
+
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed',
+        ], [
+            'new_password.confirmed' => 'Las nuevas contraseñas no coinciden.',
+            'new_password.min' => 'La nueva contraseña debe tener al menos 6 caracteres.',
+        ]);
+
+        $user = \App\Models\User::find(session('boreal_user_id'));
+
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->with('password_error', 'La contraseña actual es incorrecta.');
+        }
+
+        $user->password = \Illuminate\Support\Facades\Hash::make($request->new_password);
+        $user->save();
+
+        return back()->with('password_success', '¡Contraseña actualizada correctamente!');
+    }
+
+    public function deleteMessage($id)
+    {
+        if (!session('boreal_logged_in')) {
+            return redirect()->route('boreal.login');
+        }
+
+        $message = \App\Models\Message::findOrFail($id);
+        $message->delete();
+
+        return back()->with('message_success', 'Mensaje eliminado correctamente.');
     }
 }

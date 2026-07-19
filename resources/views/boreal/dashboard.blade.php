@@ -83,29 +83,198 @@
             border-left: 4px solid var(--primary);
         }
 
-        .logout-btn {
-            padding: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            padding-bottom: 20px;
+            position: relative;
         }
 
-        .logout-btn form button {
-            background: rgba(255, 77, 77, 0.1);
-            color: #ff4d4d;
-            border: 1px solid #ff4d4d;
-            padding: 10px 20px;
+        .user-icon {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 20px;
+            color: var(--primary);
+        }
+
+        .user-icon:hover {
+            background: rgba(0, 242, 255, 0.1);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 70px;
+            right: 0;
+            background: var(--bg-lighter);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 8px;
+            width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .dropdown-menu.show {
+            display: flex;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .dropdown-item {
+            padding: 15px 20px;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: var(--glass-hover);
+            color: var(--primary);
+        }
+        
+        .dropdown-item.text-danger {
+            color: #ff4d4d;
+        }
+        
+        .dropdown-item.text-danger:hover {
+            color: #ff4d4d;
+            background: rgba(255, 77, 77, 0.1);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background: var(--bg-lighter);
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--primary);
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-light);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
             cursor: pointer;
             width: 100%;
             transition: 0.3s;
-            font-family: 'Montserrat', sans-serif;
-            font-weight: bold;
         }
 
-        .logout-btn form button:hover {
-            background: #ff4d4d;
-            color: white;
+        .btn:hover {
+            opacity: 0.9;
         }
+        
+        .btn-delete {
+            background: transparent;
+            color: #ff4d4d;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+            padding: 5px;
+        }
+        
+        .btn-delete:hover {
+            color: #ff1a1a;
+            transform: scale(1.1);
+        }
+        
+        .alert {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-success { background: rgba(0, 242, 255, 0.1); color: var(--primary); border: 1px solid var(--primary); }
+        .alert-error { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border: 1px solid #ff4d4d; }
+
 
         /* Main Content */
         .main-content {
@@ -211,20 +380,37 @@
                 <i class="fa-solid fa-robot"></i> LogBot
             </li>
         </ul>
-        <div class="logout-btn">
-            <form action="{{ route('boreal.logout') }}" method="POST">
-                @csrf
-                <button type="submit"><i class="fa-solid fa-right-from-bracket"></i> Salir</button>
-            </form>
-        </div>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="user-icon" onclick="toggleDropdown()">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <div class="dropdown-menu" id="userDropdown">
+                <button class="dropdown-item" onclick="openPasswordModal()">
+                    <i class="fa-solid fa-key"></i> Cambiar contraseña
+                </button>
+                <form action="{{ route('boreal.logout') }}" method="POST" style="margin:0;">
+                    @csrf
+                    <button type="submit" class="dropdown-item text-danger">
+                        <i class="fa-solid fa-right-from-bracket"></i> Salir
+                    </button>
+                </form>
+            </div>
+        </div>
+        
         <!-- Tab: Mensajes -->
         <div id="mensajes" class="tab-content active">
             <h2 class="page-title">Mensajes Recibidos</h2>
+            
+            @if(session('message_success'))
+                <div class="alert alert-success">{{ session('message_success') }}</div>
+            @endif
+
             <div class="table-container">
                 <table>
                     <thead>
@@ -233,6 +419,7 @@
                             <th>Empresa</th>
                             <th>Email</th>
                             <th>Mensaje / Desafío</th>
+                            <th style="width: 50px;"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -242,10 +429,19 @@
                                 <td><strong>{{ $msg->company }}</strong></td>
                                 <td>{{ $msg->email }}</td>
                                 <td>{{ $msg->message }}</td>
+                                <td>
+                                    <form action="{{ route('boreal.messages.destroy', $msg->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.');" style="margin: 0;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-delete" title="Eliminar mensaje">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" style="text-align: center; padding: 30px;">No hay mensajes registrados.</td>
+                                <td colspan="5" style="text-align: center; padding: 30px;">No hay mensajes registrados.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -294,6 +490,49 @@
 
     </div>
 
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Cambiar Contraseña</h3>
+                <button class="modal-close" onclick="closePasswordModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            @if(session('password_success'))
+                <div class="alert alert-success">{{ session('password_success') }}</div>
+            @endif
+            @if(session('password_error'))
+                <div class="alert alert-error">{{ session('password_error') }}</div>
+            @endif
+            @if($errors->any())
+                <div class="alert alert-error">
+                    <ul style="margin:0; padding-left:20px;">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            <form action="{{ route('boreal.change-password') }}" method="POST">
+                @csrf
+                <div class="form-group">
+                    <label>Contraseña Actual</label>
+                    <input type="password" name="current_password" required>
+                </div>
+                <div class="form-group">
+                    <label>Nueva Contraseña</label>
+                    <input type="password" name="new_password" required>
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Nueva Contraseña</label>
+                    <input type="password" name="new_password_confirmation" required>
+                </div>
+                <button type="submit" class="btn">Actualizar Contraseña</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         function switchTab(tabId, element) {
             // Update active menu item
@@ -304,6 +543,36 @@
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
         }
+
+        function toggleDropdown() {
+            document.getElementById('userDropdown').classList.toggle('show');
+        }
+
+        // Close dropdown when clicking outside
+        window.onclick = function(event) {
+            if (!event.target.closest('.user-icon') && !event.target.closest('.dropdown-menu')) {
+                const dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].classList.contains('show')) {
+                        dropdowns[i].classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        function openPasswordModal() {
+            document.getElementById('passwordModal').classList.add('show');
+            document.getElementById('userDropdown').classList.remove('show');
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').classList.remove('show');
+        }
+
+        // Auto-open modal if there are errors or success message
+        @if(session('password_success') || session('password_error') || $errors->any())
+            openPasswordModal();
+        @endif
     </script>
 </body>
 </html>

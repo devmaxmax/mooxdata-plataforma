@@ -29,6 +29,8 @@ Route::prefix('boreal')->name('boreal.')->group(function () {
     Route::post('/login', [\App\Http\Controllers\BorealController::class, 'login'])->name('login.post');
     Route::post('/logout', [\App\Http\Controllers\BorealController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [\App\Http\Controllers\BorealController::class, 'dashboard'])->name('dashboard');
+    Route::post('/change-password', [\App\Http\Controllers\BorealController::class, 'changePassword'])->name('change-password');
+    Route::delete('/messages/{id}', [\App\Http\Controllers\BorealController::class, 'deleteMessage'])->name('messages.destroy');
 });
 // RUTA TEMPORAL PARA LIMPIAR CACHÉ EN SHARED HOSTING
 Route::get('/clear-cache', function() {
