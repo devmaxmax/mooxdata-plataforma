@@ -7,9 +7,8 @@ use App\Models\RagData;
 use App\Services\llm\Deepseek;
 use App\Http\Requests\ChatRequest;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use App\Mail\ContactMail;
+use App\Models\Message;
 
 class IndexController extends Controller
 {
@@ -63,15 +62,12 @@ class IndexController extends Controller
             }
         }
 
-        $data = [
-            'name' => $request->name,
+        // Se guarda el mensaje en la base de datos
+        Message::create([
+            'company' => $request->name,
             'email' => $request->email,
             'message' => $request->message,
-        ];
-
-        // Se envía el correo
-        $toAddress = env('MAIL_FROM_ADDRESS', 'hablemos@mooxdata.xyz');
-        Mail::to($toAddress)->send(new ContactMail($data));
+        ]);
 
         return response()->json([
             'status' => 'success',
