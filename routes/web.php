@@ -24,6 +24,12 @@ Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat')
 Route::post('/send_mail', [IndexController::class, 'sendMail']);
 Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoWhatsapp'])->name('index.panelDemoWhatsapp');
 
+Route::prefix('boreal')->name('boreal.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BorealController::class, 'showLogin'])->name('login');
+    Route::post('/login', [\App\Http\Controllers\BorealController::class, 'login'])->name('login.post');
+    Route::post('/logout', [\App\Http\Controllers\BorealController::class, 'logout'])->name('logout');
+    Route::get('/dashboard', [\App\Http\Controllers\BorealController::class, 'dashboard'])->name('dashboard');
+});
 // RUTA TEMPORAL PARA LIMPIAR CACHÉ EN SHARED HOSTING
 Route::get('/clear-cache', function() {
     Artisan::call('config:clear');
