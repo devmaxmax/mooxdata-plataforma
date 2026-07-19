@@ -23,7 +23,11 @@ class BorealController extends Controller
             'password' => 'required'
         ]);
 
-        if ($request->username === 'nicolas' && $request->password === 'defaul') {
+        $user = \App\Models\User::where('name', $request->username)
+                    ->orWhere('email', $request->username)
+                    ->first();
+
+        if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
             session(['boreal_logged_in' => true]);
             return redirect()->route('boreal.dashboard');
         }
