@@ -23,11 +23,22 @@ class BorealController extends Controller
             'password' => 'required'
         ]);
 
+        $throttleKey = 'login.boreal.'.$request->ip();
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($throttleKey);
+            return back()->withErrors(['login' => 'Demasiados intentos. Por favor, intenta de nuevo en ' . $seconds . ' segundos.']);
+        }
+
         $user = \App\Models\User::where('name', $request->username)
                     ->orWhere('email', $request->username)
                     ->first();
 
         if ($user && \Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
+            
+            // Regenerate session to prevent Session Fixation
+            $request->session()->regenerate();
+            
             session([
                 'boreal_logged_in' => true,
                 'boreal_user_id' => $user->id
@@ -35,12 +46,15 @@ class BorealController extends Controller
             return redirect()->route('boreal.dashboard');
         }
 
+        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey, 60);
+
         return back()->withErrors(['login' => 'Credenciales incorrectas']);
     }
 
-    public function logout()
+    public function logout(Request $request)
     {
-        session()->forget('boreal_logged_in');
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect()->route('boreal.login');
     }
 
