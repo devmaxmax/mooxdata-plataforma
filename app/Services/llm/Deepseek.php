@@ -4,6 +4,7 @@ namespace App\Services\llm;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use App\Models\LogBot;
 
 class Deepseek
 {
@@ -16,7 +17,7 @@ class Deepseek
 
     public function chat(array $systemMessage, $request)
     {
-        $messages = array_merge([$systemMessage], $request->messages);
+        $messages = array_merge([$systemMessage], $request->input('messages', []));
 
         try {
             $response = Http::withToken($this->apiKey)
@@ -51,6 +52,30 @@ class Deepseek
                 'user-input' => $messages,
                 'ia-reply' => $reply,
             ]);
+
+            try {
+                $lastUserMessage = null;
+                $messagesInput = $request->input('messages');
+                
+                if (is_array($messagesInput)) {
+                    $userMessages = array_filter($messagesInput, function($msg) {
+                        return isset($msg['role']) && $msg['role'] === 'user';
+                    });
+                    
+                    if (!empty($userMessages)) {
+                        $lastUserMessageArray = end($userMessages);
+                        $lastUserMessage = $lastUserMessageArray['content'] ?? null;
+                    }
+                }
+
+                LogBot::create([
+                    'user_message' => $lastUserMessage,
+                    'bot_response' => $reply,
+                    'ip_address' => $request->ip(),
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Error saving bot log', ['error' => $e->getMessage()]);
+            }
 
             return response()->json([
                 'reply' => $reply,
