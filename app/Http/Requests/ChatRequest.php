@@ -22,9 +22,9 @@ class ChatRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'messages' => 'required|array',
-            'messages.*.role' => 'required|string',
-            'messages.*.content' => 'required|string',
+            'messages' => 'required|array|max:20',
+            'messages.*.role' => 'required|string|in:user,assistant',
+            'messages.*.content' => 'required|string|max:1000',
         ];
     }
 

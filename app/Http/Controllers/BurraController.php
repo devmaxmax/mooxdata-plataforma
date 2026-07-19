@@ -80,8 +80,8 @@ class BurraController extends Controller
     {
         try {
             $validated = $request->validate([
-                'pedido.productos' => 'required|array',
-                'pedido.preguntas' => 'nullable|array',
+                'pedido.productos' => 'required|array|max:50',
+                'pedido.preguntas' => 'nullable|array|max:50',
             ]);
 
             $pedidoData = $request->input('pedido');
@@ -210,10 +210,19 @@ class BurraController extends Controller
             'password' => ['required'],
         ]);
         
+        $throttleKey = 'login.burra.'.$request->ip();
+        if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = \Illuminate\Support\Facades\RateLimiter::availableIn($throttleKey);
+            return back()->withErrors(['name' => 'Demasiados intentos. Intenta de nuevo en ' . $seconds . ' segundos.']);
+        }
+
         if (Auth::guard('burra_admin')->attempt($credentials)) {
+            \Illuminate\Support\Facades\RateLimiter::clear($throttleKey);
             $request->session()->regenerate();
             return redirect()->route('burra.dashboard');
         }
+
+        \Illuminate\Support\Facades\RateLimiter::hit($throttleKey, 60);
 
         return back()->withErrors([
             'name' => 'Las credenciales no coinciden.',

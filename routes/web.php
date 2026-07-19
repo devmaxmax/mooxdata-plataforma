@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Artisan;
 */
 
 Route::get('/', [IndexController::class, 'index']);
-Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat');
+Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat')->middleware('throttle:15,1');
 Route::post('/send_mail', [IndexController::class, 'sendMail']);
 Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoWhatsapp'])->name('index.panelDemoWhatsapp');
 
@@ -78,7 +78,7 @@ Route::prefix('app/burracomidamexicana')->name('burra.')->group(function () {
          ->name('assets');
     });
 
-    Route::post('/pedido', [BurraController::class, 'procesarPedido'])->name('pedido');
+    Route::post('/pedido', [BurraController::class, 'procesarPedido'])->name('pedido')->middleware('throttle:15,1');
 });
 
 // Route::get('/generar-token-burra', function () {
