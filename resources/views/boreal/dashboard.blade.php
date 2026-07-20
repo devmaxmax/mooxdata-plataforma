@@ -94,6 +94,20 @@
             position: relative;
         }
 
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+        }
+
         .user-icon {
             background: var(--glass);
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -413,8 +427,11 @@
 
         <!-- Top Bar -->
         <div class="top-bar">
-            <div class="user-icon" onclick="toggleDropdown()">
-                <i class="fa-solid fa-user"></i> {{ $loggedUser->name ?? '' }}
+            <div class="user-menu-btn" onclick="toggleDropdown()">
+                <span class="user-name">{{ $loggedUser->name ?? '' }}</span>
+                <div class="user-icon">
+                    <i class="fa-solid fa-user"></i>
+                </div>
             </div>
             <div class="dropdown-menu" id="userDropdown">
                 <button class="dropdown-item" onclick="openPasswordModal()">
@@ -576,7 +593,7 @@
 
         // Close dropdown when clicking outside
         window.onclick = function(event) {
-            if (!event.target.closest('.user-icon') && !event.target.closest('.dropdown-menu')) {
+            if (!event.target.closest('.user-menu-btn') && !event.target.closest('.dropdown-menu')) {
                 const dropdowns = document.getElementsByClassName("dropdown-menu");
                 for (let i = 0; i < dropdowns.length; i++) {
                     if (dropdowns[i].classList.contains('show')) {
