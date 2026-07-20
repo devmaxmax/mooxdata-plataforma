@@ -596,7 +596,7 @@
         }
 
         // Auto-open modal if there are errors or success message
-        @if(session('password_success') || session('password_error') || $errors - > any())
+        @if(session('password_success') || session('password_error') || $errors->any())
         openPasswordModal();
         @endif
     </script>
