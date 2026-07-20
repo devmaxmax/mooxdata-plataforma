@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\LogBot;
+use App\Models\RagData;
 
 class BorealController extends Controller
 {
@@ -67,8 +68,9 @@ class BorealController extends Controller
         $loggedUser = \App\Models\User::find(session('boreal_user_id'));
         $messages = Message::orderBy('created_at', 'desc')->get();
         $logs = LogBot::orderBy('created_at', 'desc')->get();
+        $ragData = RagData::orderBy('created_at', 'desc')->get();
 
-        return view('boreal.dashboard', compact('messages', 'logs', 'loggedUser'));
+        return view('boreal.dashboard', compact('messages', 'logs', 'loggedUser', 'ragData'));
     }
 
     public function changePassword(Request $request)
@@ -107,5 +109,52 @@ class BorealController extends Controller
         $message->delete();
 
         return back()->with('message_success', 'Mensaje eliminado correctamente.');
+    }
+
+    public function storeRagData(Request $request)
+    {
+        if (!session('boreal_logged_in')) return redirect()->route('boreal.login');
+
+        $request->validate([
+            'topic' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        RagData::create([
+            'topic' => $request->topic,
+            'content' => $request->content,
+            'is_active' => $request->has('is_active') ? true : false,
+        ]);
+
+        return back()->with('message_success', 'Registro creado correctamente.');
+    }
+
+    public function updateRagData(Request $request, $id)
+    {
+        if (!session('boreal_logged_in')) return redirect()->route('boreal.login');
+
+        $request->validate([
+            'topic' => 'required|string|max:255',
+            'content' => 'required|string',
+        ]);
+
+        $rag = RagData::findOrFail($id);
+        $rag->update([
+            'topic' => $request->topic,
+            'content' => $request->content,
+            'is_active' => $request->has('is_active') ? true : false,
+        ]);
+
+        return back()->with('message_success', 'Registro actualizado correctamente.');
+    }
+
+    public function destroyRagData($id)
+    {
+        if (!session('boreal_logged_in')) return redirect()->route('boreal.login');
+
+        $rag = RagData::findOrFail($id);
+        $rag->delete();
+
+        return back()->with('message_success', 'Registro eliminado correctamente.');
     }
 }

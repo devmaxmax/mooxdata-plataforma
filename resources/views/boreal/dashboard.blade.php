@@ -286,6 +286,57 @@
             transform: scale(1.1);
         }
 
+        .btn-edit {
+            background: transparent;
+            color: var(--primary);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+            padding: 5px;
+        }
+        
+        .btn-edit:hover {
+            color: #00b3cc;
+            transform: scale(1.1);
+        }
+
+        .header-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .header-action .page-title {
+            margin-bottom: 0;
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+            min-height: 100px;
+            resize: vertical;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        textarea:focus {
+            border-color: var(--primary);
+        }
+
         .alert {
             padding: 10px;
             border-radius: 8px;
@@ -419,6 +470,9 @@
             <li onclick="switchTab('logbot', this)">
                 <i class="fa-solid fa-robot"></i> LogBot
             </li>
+            <li onclick="switchTab('ragbot', this)">
+                <i class="fa-solid fa-database"></i> RagBot
+            </li>
         </ul>
     </div>
 
@@ -531,6 +585,60 @@
             </div>
         </div>
 
+        <!-- Tab: RagBot -->
+        <div id="ragbot" class="tab-content">
+            <div class="header-action">
+                <h2 class="page-title">Base de Conocimiento (RAG)</h2>
+                <button class="btn btn-sm" onclick="openRagModal('create')"><i class="fa-solid fa-plus"></i> Nuevo Tema</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tema</th>
+                            <th>Contenido</th>
+                            <th>Estado</th>
+                            <th style="width: 80px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($ragData as $rag)
+                        <tr>
+                            <td><strong>{{ $rag->topic }}</strong></td>
+                            <td>{{ Str::limit($rag->content, 80) }}</td>
+                            <td>
+                                @if($rag->is_active)
+                                    <span class="badge" style="background: rgba(0,255,0,0.1); color: #00ff00;">Activo</span>
+                                @else
+                                    <span class="badge" style="background: rgba(255,0,0,0.1); color: #ff4d4d;">Inactivo</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="btn-edit" onclick="openRagModal('edit', {{ json_encode($rag) }})" title="Editar">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                    <form action="{{ route('boreal.rag.destroy', $rag->id) }}" method="POST" onsubmit="return confirm('¿Eliminar este tema?');" style="margin: 0;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-delete" title="Eliminar">
+                                            <i class="fa-solid fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px;">No hay registros en la base de conocimiento.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <!-- Password Modal -->
@@ -576,6 +684,38 @@
         </div>
     </div>
 
+    <!-- RAG Modal -->
+    <div class="modal-overlay" id="ragModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="ragModalTitle">Nuevo Tema</h3>
+                <button class="modal-close" onclick="closeRagModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form id="ragForm" action="{{ route('boreal.rag.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="_method" id="ragMethod" value="POST">
+                
+                <div class="form-group">
+                    <label>Tema / Tópico</label>
+                    <input type="text" name="topic" id="ragTopic" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Contenido</label>
+                    <textarea name="content" id="ragContent" required rows="5"></textarea>
+                </div>
+                
+                <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" name="is_active" id="ragIsActive" value="1" checked style="width: auto;">
+                    <label style="margin: 0;">Activo</label>
+                </div>
+                
+                <button type="submit" class="btn" id="ragSubmitBtn">Guardar Registro</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         function switchTab(tabId, element) {
             // Update active menu item
@@ -616,6 +756,41 @@
         @if(session('password_success') || session('password_error') || $errors->any())
         openPasswordModal();
         @endif
+
+        function openRagModal(mode, data = null) {
+            const form = document.getElementById('ragForm');
+            const title = document.getElementById('ragModalTitle');
+            const method = document.getElementById('ragMethod');
+            const submitBtn = document.getElementById('ragSubmitBtn');
+            const inputTopic = document.getElementById('ragTopic');
+            const inputContent = document.getElementById('ragContent');
+            const inputActive = document.getElementById('ragIsActive');
+            
+            if (mode === 'create') {
+                title.textContent = 'Nuevo Tema';
+                method.value = 'POST';
+                form.action = "{{ route('boreal.rag.store') }}";
+                inputTopic.value = '';
+                inputContent.value = '';
+                inputActive.checked = true;
+                submitBtn.textContent = 'Guardar Registro';
+            } else {
+                title.textContent = 'Editar Tema';
+                method.value = 'PUT';
+                form.action = `/boreal/rag/${data.id}`;
+                inputTopic.value = data.topic;
+                inputContent.value = data.content;
+                inputActive.checked = data.is_active == 1;
+                submitBtn.textContent = 'Actualizar Registro';
+            }
+            
+            document.getElementById('ragModal').classList.add('show');
+            document.getElementById('userDropdown').classList.remove('show');
+        }
+
+        function closeRagModal() {
+            document.getElementById('ragModal').classList.remove('show');
+        }
     </script>
 </body>
 
