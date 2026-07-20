@@ -64,10 +64,11 @@ class BorealController extends Controller
             return redirect()->route('boreal.login');
         }
 
+        $loggedUser = \App\Models\User::find(session('boreal_user_id'));
         $messages = Message::orderBy('created_at', 'desc')->get();
         $logs = LogBot::orderBy('created_at', 'desc')->get();
 
-        return view('boreal.dashboard', compact('messages', 'logs'));
+        return view('boreal.dashboard', compact('messages', 'logs', 'loggedUser'));
     }
 
     public function changePassword(Request $request)

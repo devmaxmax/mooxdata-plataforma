@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -29,7 +30,9 @@
             overflow: hidden;
         }
 
-        h1, h2, h3 {
+        h1,
+        h2,
+        h3 {
             font-family: 'Montserrat', sans-serif;
         }
 
@@ -149,11 +152,11 @@
             background: var(--glass-hover);
             color: var(--primary);
         }
-        
+
         .dropdown-item.text-danger {
             color: #ff4d4d;
         }
-        
+
         .dropdown-item.text-danger:hover {
             color: #ff4d4d;
             background: rgba(255, 77, 77, 0.1);
@@ -162,8 +165,11 @@
         /* Modal */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
             display: none;
             justify-content: center;
             align-items: center;
@@ -179,10 +185,10 @@
             background: var(--bg-lighter);
             padding: 30px;
             border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .modal-header {
@@ -250,7 +256,7 @@
         .btn:hover {
             opacity: 0.9;
         }
-        
+
         .btn-delete {
             background: transparent;
             color: #ff4d4d;
@@ -260,20 +266,30 @@
             transition: 0.3s;
             padding: 5px;
         }
-        
+
         .btn-delete:hover {
             color: #ff1a1a;
             transform: scale(1.1);
         }
-        
+
         .alert {
             padding: 10px;
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
         }
-        .alert-success { background: rgba(0, 242, 255, 0.1); color: var(--primary); border: 1px solid var(--primary); }
-        .alert-error { background: rgba(255, 77, 77, 0.1); color: #ff4d4d; border: 1px solid #ff4d4d; }
+
+        .alert-success {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .alert-error {
+            background: rgba(255, 77, 77, 0.1);
+            color: #ff4d4d;
+            border: 1px solid #ff4d4d;
+        }
 
 
         /* Main Content */
@@ -293,8 +309,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .page-title {
@@ -319,7 +342,8 @@
             text-align: left;
         }
 
-        th, td {
+        th,
+        td {
             padding: 15px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
@@ -349,7 +373,7 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
+
         .chat-bubble {
             background: rgba(255, 255, 255, 0.05);
             padding: 10px;
@@ -357,6 +381,7 @@
             margin-bottom: 8px;
             font-style: italic;
         }
+
         .bot-bubble {
             background: rgba(0, 242, 255, 0.05);
             border-left: 2px solid var(--primary);
@@ -365,6 +390,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Sidebar -->
@@ -384,11 +410,11 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        
+
         <!-- Top Bar -->
         <div class="top-bar">
             <div class="user-icon" onclick="toggleDropdown()">
-                <i class="fa-solid fa-user"></i>
+                <i class="fa-solid fa-user"></i> {{ $loggedUser->name ?? '' }}
             </div>
             <div class="dropdown-menu" id="userDropdown">
                 <button class="dropdown-item" onclick="openPasswordModal()">
@@ -402,13 +428,13 @@
                 </form>
             </div>
         </div>
-        
+
         <!-- Tab: Mensajes -->
         <div id="mensajes" class="tab-content active">
             <h2 class="page-title">Mensajes Recibidos</h2>
-            
+
             @if(session('message_success'))
-                <div class="alert alert-success">{{ session('message_success') }}</div>
+            <div class="alert alert-success">{{ session('message_success') }}</div>
             @endif
 
             <div class="table-container">
@@ -424,25 +450,25 @@
                     </thead>
                     <tbody>
                         @forelse($messages as $msg)
-                            <tr>
-                                <td style="white-space: nowrap;">{{ $msg->created_at->format('d/m/Y H:i') }}</td>
-                                <td><strong>{{ $msg->company }}</strong></td>
-                                <td>{{ $msg->email }}</td>
-                                <td>{{ $msg->message }}</td>
-                                <td>
-                                    <form action="{{ route('boreal.messages.destroy', $msg->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.');" style="margin: 0;">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn-delete" title="Eliminar mensaje">
-                                            <i class="fa-solid fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td style="white-space: nowrap;">{{ $msg->created_at->format('d/m/Y H:i') }}</td>
+                            <td><strong>{{ $msg->company }}</strong></td>
+                            <td>{{ $msg->email }}</td>
+                            <td>{{ $msg->message }}</td>
+                            <td>
+                                <form action="{{ route('boreal.messages.destroy', $msg->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este mensaje? Esta acción no se puede deshacer.');" style="margin: 0;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-delete" title="Eliminar mensaje">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td colspan="5" style="text-align: center; padding: 30px;">No hay mensajes registrados.</td>
-                            </tr>
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px;">No hay mensajes registrados.</td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -464,24 +490,24 @@
                     </thead>
                     <tbody>
                         @forelse($logs as $log)
-                            <tr>
-                                <td style="white-space: nowrap;">{{ $log->created_at->format('d/m/Y H:i') }}</td>
-                                <td><span class="badge">{{ $log->ip_address ?? 'Desconocida' }}</span></td>
-                                <td>
-                                    <div class="chat-bubble">
-                                        "{{ $log->user_message }}"
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="bot-bubble">
-                                        {{ $log->bot_response }}
-                                    </div>
-                                </td>
-                            </tr>
+                        <tr>
+                            <td style="white-space: nowrap;">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                            <td><span class="badge">{{ $log->ip_address ?? 'Desconocida' }}</span></td>
+                            <td>
+                                <div class="chat-bubble">
+                                    "{{ $log->user_message }}"
+                                </div>
+                            </td>
+                            <td>
+                                <div class="bot-bubble">
+                                    {{ $log->bot_response }}
+                                </div>
+                            </td>
+                        </tr>
                         @empty
-                            <tr>
-                                <td colspan="4" style="text-align: center; padding: 30px;">No hay interacciones registradas con el bot.</td>
-                            </tr>
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 30px;">No hay interacciones registradas con el bot.</td>
+                        </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -497,21 +523,21 @@
                 <h3>Cambiar Contraseña</h3>
                 <button class="modal-close" onclick="closePasswordModal()"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            
+
             @if(session('password_success'))
-                <div class="alert alert-success">{{ session('password_success') }}</div>
+            <div class="alert alert-success">{{ session('password_success') }}</div>
             @endif
             @if(session('password_error'))
-                <div class="alert alert-error">{{ session('password_error') }}</div>
+            <div class="alert alert-error">{{ session('password_error') }}</div>
             @endif
             @if($errors->any())
-                <div class="alert alert-error">
-                    <ul style="margin:0; padding-left:20px;">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
+            <div class="alert alert-error">
+                <ul style="margin:0; padding-left:20px;">
+                    @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
             @endif
 
             <form action="{{ route('boreal.change-password') }}" method="POST">
@@ -570,9 +596,10 @@
         }
 
         // Auto-open modal if there are errors or success message
-        @if(session('password_success') || session('password_error') || $errors->any())
-            openPasswordModal();
+        @if(session('password_success') || session('password_error') || $errors - > any())
+        openPasswordModal();
         @endif
     </script>
 </body>
+
 </html>
