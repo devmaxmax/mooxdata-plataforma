@@ -356,6 +356,62 @@
             border: 1px solid #ff4d4d;
         }
 
+        .modal-lg {
+            max-width: 800px !important;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+        
+        /* Pagination custom styles */
+        .pagination {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            gap: 5px;
+            justify-content: center;
+        }
+        .pagination li a, .pagination li span {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: var(--text-light);
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .pagination li.active span {
+            background: var(--primary);
+            color: var(--bg-dark);
+            font-weight: bold;
+        }
+        .pagination li a:hover {
+            background: var(--glass-hover);
+        }
+        .pagination .disabled span {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
 
         /* Main Content */
         .main-content {
@@ -587,9 +643,20 @@
 
         <!-- Tab: RagBot -->
         <div id="ragbot" class="tab-content">
-            <div class="header-action">
+            <div class="header-action" style="flex-wrap: wrap; gap: 15px;">
                 <h2 class="page-title">Base de Conocimiento (RAG)</h2>
-                <button class="btn btn-sm" onclick="openRagModal('create')"><i class="fa-solid fa-plus"></i> Nuevo Tema</button>
+                
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <form action="{{ route('boreal.dashboard') }}" method="GET" class="search-form">
+                        <input type="hidden" name="tab" value="ragbot">
+                        <input type="text" name="search_rag" class="search-input" placeholder="Buscar por tema..." value="{{ request('search_rag') }}">
+                        <button type="submit" class="btn btn-sm"><i class="fa-solid fa-search"></i></button>
+                        @if(request('search_rag'))
+                            <a href="{{ route('boreal.dashboard', ['tab' => 'ragbot']) }}" class="btn btn-sm" style="background: rgba(255,77,77,0.2); color: #ff4d4d; border: 1px solid #ff4d4d;"><i class="fa-solid fa-times"></i> Limpiar</a>
+                        @endif
+                    </form>
+                    <button class="btn btn-sm" onclick="openRagModal('create')"><i class="fa-solid fa-plus"></i> Nuevo Tema</button>
+                </div>
             </div>
 
             <div class="table-container">
@@ -636,6 +703,10 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <div style="margin-top: 20px;">
+                {{ $ragData->appends(['tab' => 'ragbot', 'search_rag' => request('search_rag')])->links('pagination::bootstrap-4') }}
             </div>
         </div>
 
@@ -686,7 +757,7 @@
 
     <!-- RAG Modal -->
     <div class="modal-overlay" id="ragModal">
-        <div class="modal-content">
+        <div class="modal-content modal-lg">
             <div class="modal-header">
                 <h3 id="ragModalTitle">Nuevo Tema</h3>
                 <button class="modal-close" onclick="closeRagModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -703,7 +774,7 @@
                 
                 <div class="form-group">
                     <label>Contenido</label>
-                    <textarea name="content" id="ragContent" required rows="5"></textarea>
+                    <textarea name="content" id="ragContent" required rows="15"></textarea>
                 </div>
                 
                 <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
@@ -717,6 +788,18 @@
     </div>
 
     <script>
+        // Set correct tab on load based on query params
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const activeTabParam = urlParams.get('tab');
+            if(activeTabParam) {
+                const el = document.querySelector(`li[onclick="switchTab('${activeTabParam}', this)"]`);
+                if(el) {
+                    switchTab(activeTabParam, el);
+                }
+            }
+        });
+
         function switchTab(tabId, element) {
             // Update active menu item
             document.querySelectorAll('.menu li').forEach(li => li.classList.remove('active'));

@@ -59,7 +59,7 @@ class BorealController extends Controller
         return redirect()->route('boreal.login');
     }
 
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         if (!session('boreal_logged_in')) {
             return redirect()->route('boreal.login');
@@ -68,7 +68,12 @@ class BorealController extends Controller
         $loggedUser = \App\Models\User::find(session('boreal_user_id'));
         $messages = Message::orderBy('created_at', 'desc')->get();
         $logs = LogBot::orderBy('created_at', 'desc')->get();
-        $ragData = RagData::orderBy('created_at', 'desc')->get();
+        
+        $ragQuery = RagData::orderBy('created_at', 'desc');
+        if ($request->has('search_rag') && $request->search_rag != '') {
+            $ragQuery->where('topic', 'like', '%' . $request->search_rag . '%');
+        }
+        $ragData = $ragQuery->paginate(10)->appends($request->query());
 
         return view('boreal.dashboard', compact('messages', 'logs', 'loggedUser', 'ragData'));
     }
