@@ -312,6 +312,10 @@
                     <p>hablemos@mooxdata.xyz</p>
                 </div>
                 <div class="info-item">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    <p><a href="https://wa.me/5493765389272" target="_blank" rel="noopener noreferrer">+54 9 376 538-9272</a></p>
+                </div>
+                <div class="info-item">
                     <i class="fa-brands fa-instagram"></i>
                     <p><a href="https://www.instagram.com/mooxdata_ia" target="_blank">mooxdata_ia</a></p>
                 </div>
@@ -344,6 +348,10 @@
     <footer>
         <p>&copy; 2025 MooxData. Todos los derechos reservados.</p>
     </footer>
+
+    <a href="https://wa.me/5493765389272" target="_blank" rel="noopener noreferrer" class="whatsapp-float-btn" title="Contactar por WhatsApp">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
 
     <div class="chat-toggle-btn" id="chatToggleBtn">
         <i class="fa-solid fa-comments"></i>
