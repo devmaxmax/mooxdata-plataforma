@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Panel Boreal - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;900&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -529,6 +530,9 @@
             <li onclick="switchTab('ragbot', this)">
                 <i class="fa-solid fa-database"></i> RagBot
             </li>
+            <li onclick="switchTab('whatsapp', this)">
+                <i class="fa-brands fa-whatsapp" style="color: #25D366;"></i> WhatsApp
+            </li>
         </ul>
     </div>
 
@@ -710,6 +714,46 @@
             </div>
         </div>
 
+        <!-- Tab: WhatsApp -->
+        <div id="whatsapp" class="tab-content">
+            <h2 class="page-title">Conversaciones de WhatsApp</h2>
+
+            <div style="display: flex; height: calc(100vh - 200px); background: var(--bg-lighter); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.1);">
+                <!-- Sidebar de Chats -->
+                <div style="width: 320px; border-right: 1px solid rgba(255, 255, 255, 0.1); display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.2);">
+                    <div style="padding: 15px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03);">
+                        <h3 style="margin: 0; font-size: 16px; color: var(--primary); font-family: 'Montserrat', sans-serif;">
+                            <i class="fa-brands fa-whatsapp" style="color: #25D366; margin-right: 6px;"></i> Chats Activos
+                        </h3>
+                    </div>
+                    <div id="boreal-whatsapp-chat-list" style="flex: 1; overflow-y: auto;">
+                        <div style="padding: 30px; text-align: center; color: var(--text-muted);">Cargando conversaciones...</div>
+                    </div>
+                </div>
+
+                <!-- Mensajes del Chat -->
+                <div style="flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); min-width: 0;">
+                    <div id="boreal-whatsapp-header" style="height: 60px; background: rgba(255, 255, 255, 0.03); padding: 0 20px; display: flex; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); font-weight: bold; color: var(--text-light);">
+                        Selecciona una conversación para ver el historial
+                    </div>
+                    <div id="boreal-whatsapp-messages" style="flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px;">
+                        <div style="margin: auto; text-align: center; color: var(--text-muted);">
+                            <i class="fa-brands fa-whatsapp" style="font-size: 48px; opacity: 0.3; margin-bottom: 10px; display: block;"></i>
+                            Ningún chat seleccionado
+                        </div>
+                    </div>
+                    <div id="boreal-whatsapp-input-container" style="padding: 15px; background: rgba(255, 255, 255, 0.03); border-top: 1px solid rgba(255, 255, 255, 0.1); display: flex; gap: 10px;">
+                        <input type="text" id="boreal-whatsapp-input" placeholder="Escribe un mensaje..." disabled
+                            style="flex: 1; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.15); background: var(--bg-lighter); color: var(--text-light); outline: none; font-size: 14px;">
+                        <button id="boreal-whatsapp-send-btn" onclick="sendBorealWhatsAppMessage()" disabled
+                            style="background: var(--primary); color: #000; border: none; padding: 0 24px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; font-family: 'Montserrat', sans-serif;">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Password Modal -->
@@ -808,6 +852,10 @@
             // Update active tab content
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'whatsapp') {
+                fetchBorealWhatsAppChats();
+            }
         }
 
         function toggleDropdown() {
@@ -874,6 +922,158 @@
         function closeRagModal() {
             document.getElementById('ragModal').classList.remove('show');
         }
+
+        // --- WHATSAPP FUNCTIONS FOR BOREAL ---
+        let activeBorealChatPhone = null;
+
+        function fetchBorealWhatsAppChats() {
+            fetch("{{ route('boreal.whatsapp.chats') }}")
+                .then(res => res.json())
+                .then(chats => renderBorealWhatsAppChats(chats))
+                .catch(err => console.error(err));
+        }
+
+        function renderBorealWhatsAppChats(chats) {
+            const list = document.getElementById('boreal-whatsapp-chat-list');
+            if (!list) return;
+
+            if (!chats || chats.length === 0) {
+                list.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted);">No hay conversaciones registradas aún.</div>';
+                return;
+            }
+
+            let html = '';
+            chats.forEach(chat => {
+                const isActive = activeBorealChatPhone === chat.phone_number;
+                const formattedDate = new Date(chat.last_activity).toLocaleString('es-AR', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+
+                html += `
+                    <div onclick="selectBorealChat('${chat.phone_number}')" 
+                        style="padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s; background: ${isActive ? 'rgba(0, 242, 255, 0.1)' : 'transparent'}; border-left: ${isActive ? '4px solid var(--primary)' : '4px solid transparent'};">
+                        <div style="font-weight: bold; color: var(--text-light); font-size: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <span><i class="fa-solid fa-user-circle" style="color: var(--primary); margin-right: 6px;"></i> +${chat.phone_number}</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 5px;">
+                            Última act: ${formattedDate}
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        function selectBorealChat(phone) {
+            activeBorealChatPhone = phone;
+            document.getElementById('boreal-whatsapp-header').innerHTML = `<i class="fa-brands fa-whatsapp" style="color: #25D366; margin-right: 8px;"></i> Chat con +${phone}`;
+            document.getElementById('boreal-whatsapp-input').disabled = false;
+            document.getElementById('boreal-whatsapp-send-btn').disabled = false;
+
+            fetchBorealWhatsAppMessages(phone);
+            fetchBorealWhatsAppChats();
+        }
+
+        function fetchBorealWhatsAppMessages(phone) {
+            fetch(`/boreal/api/whatsapp/messages/${phone}`)
+                .then(res => res.json())
+                .then(messages => renderBorealWhatsAppMessages(messages))
+                .catch(err => console.error(err));
+        }
+
+        function renderBorealWhatsAppMessages(messages) {
+            const container = document.getElementById('boreal-whatsapp-messages');
+            if (!container) return;
+
+            if (!messages || messages.length === 0) {
+                container.innerHTML = '<div style="margin: auto; color: var(--text-muted);">Sin mensajes en este chat.</div>';
+                return;
+            }
+
+            let html = '';
+            messages.forEach(msg => {
+                const isIncoming = msg.type === 'incoming';
+                const time = new Date(msg.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+                html += `
+                    <div style="display: flex; flex-direction: column; align-items: ${isIncoming ? 'flex-start' : 'flex-end'};">
+                        <div style="max-width: 70%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; 
+                            background: ${isIncoming ? 'rgba(255, 255, 255, 0.08)' : 'linear-gradient(135deg, var(--primary), var(--secondary))'}; 
+                            color: ${isIncoming ? 'var(--text-light)' : '#ffffff'}; 
+                            border-bottom-${isIncoming ? 'left' : 'right'}-radius: 2px;">
+                            <div>${escapeHtml(msg.message)}</div>
+                            <div style="font-size: 10px; text-align: right; margin-top: 4px; opacity: 0.7;">
+                                ${time} ${!isIncoming ? '<i class="fa-solid fa-check-double"></i>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function sendBorealWhatsAppMessage() {
+            if (!activeBorealChatPhone) return;
+            const input = document.getElementById('boreal-whatsapp-input');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            fetch("{{ route('boreal.whatsapp.send') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    phone: activeBorealChatPhone,
+                    message: message
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    fetchBorealWhatsAppMessages(activeBorealChatPhone);
+                    fetchBorealWhatsAppChats();
+                } else {
+                    alert('Error enviando mensaje: ' + (data.error || 'Error desconocido'));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Error al enviar el mensaje');
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;")
+                .replace(/\n/g, '<br>');
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && event.target.id === 'boreal-whatsapp-input') {
+                sendBorealWhatsAppMessage();
+            }
+        });
+
+        setInterval(() => {
+            const tab = document.getElementById('whatsapp');
+            if (tab && tab.classList.contains('active')) {
+                fetchBorealWhatsAppChats();
+                if (activeBorealChatPhone) {
+                    fetchBorealWhatsAppMessages(activeBorealChatPhone);
+                }
+            }
+        }, 5000);
     </script>
 </body>
 

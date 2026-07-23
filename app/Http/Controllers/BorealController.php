@@ -162,4 +162,84 @@ class BorealController extends Controller
 
         return back()->with('message_success', 'Registro eliminado correctamente.');
     }
+
+    public function getWhatsAppChats()
+    {
+        if (!session('boreal_logged_in')) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $chats = \App\Models\BorealWhatsAppMessage::select('phone_number')
+            ->selectRaw('MAX(created_at) as last_activity')
+            ->groupBy('phone_number')
+            ->orderByDesc('last_activity')
+            ->get();
+
+        return response()->json($chats);
+    }
+
+    public function getWhatsAppMessages($phone)
+    {
+        if (!session('boreal_logged_in')) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $messages = \App\Models\BorealWhatsAppMessage::where('phone_number', $phone)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return response()->json($messages);
+    }
+
+    public function sendWhatsAppMessage(Request $request)
+    {
+        if (!session('boreal_logged_in')) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $request->validate([
+            'phone' => 'required',
+            'message' => 'required'
+        ]);
+
+        $phone = $request->phone;
+        $message = $request->message;
+
+        $token = env('BOREAL_META_WHATSAPP_TOKEN', env('META_WHATSAPP_TOKEN'));
+        $phoneId = env('BOREAL_META_PHONE_ID', env('META_PHONE_ID'));
+        $version = 'v21.0';
+
+        if (!$token || !$phoneId) {
+            return response()->json(['error' => 'Faltan credenciales de WhatsApp en .env (BOREAL_META_WHATSAPP_TOKEN o BOREAL_META_PHONE_ID)'], 500);
+        }
+
+        $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withToken($token)->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $phone,
+                'type' => 'text',
+                'text' => ['body' => $message]
+            ]);
+
+            if ($response->failed()) {
+                \Illuminate\Support\Facades\Log::error('Error enviando mensaje WhatsApp Boreal: ' . $response->body());
+                return response()->json(['error' => 'Error al enviar mensaje a Meta: ' . $response->body()], 500);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Excepción enviando WhatsApp Boreal: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        \App\Models\BorealWhatsAppMessage::create([
+            'phone_number' => $phone,
+            'message' => $message,
+            'type' => 'outgoing',
+            'status' => 'sent_manual'
+        ]);
+
+        return response()->json(['success' => true]);
+    }
 }
+

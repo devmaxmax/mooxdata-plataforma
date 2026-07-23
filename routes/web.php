@@ -34,6 +34,10 @@ Route::prefix('boreal')->name('boreal.')->group(function () {
     Route::post('/rag', [\App\Http\Controllers\BorealController::class, 'storeRagData'])->name('rag.store');
     Route::put('/rag/{id}', [\App\Http\Controllers\BorealController::class, 'updateRagData'])->name('rag.update');
     Route::delete('/rag/{id}', [\App\Http\Controllers\BorealController::class, 'destroyRagData'])->name('rag.destroy');
+
+    Route::get('/api/whatsapp/chats', [\App\Http\Controllers\BorealController::class, 'getWhatsAppChats'])->name('whatsapp.chats');
+    Route::get('/api/whatsapp/messages/{phone}', [\App\Http\Controllers\BorealController::class, 'getWhatsAppMessages'])->name('whatsapp.messages');
+    Route::post('/api/whatsapp/send', [\App\Http\Controllers\BorealController::class, 'sendWhatsAppMessage'])->name('whatsapp.send');
 });
 // RUTA TEMPORAL PARA LIMPIAR CACHÉ EN SHARED HOSTING
 Route::get('/clear-cache', function() {
