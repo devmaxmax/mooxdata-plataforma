@@ -98,16 +98,17 @@ class BorealWhatsAppWebhookController extends Controller
 
                 try {
                     // Fetch RagData
-                    $ragData = RagData::where('is_active', 1)->get();
-                    $ragContext = "";
-                    foreach ($ragData as $rag) {
-                        $ragContext .= "Tema: {$rag->topic}\nContenido: {$rag->content}\n\n";
+                    $ragData = RagData::where('is_active', true)->get();
+
+                    $context = "Información Oficial de MooxData:\n";
+                    foreach ($ragData as $item) {
+                        $context .= "- [{$item->topic}]: {$item->content}\n";
                     }
 
-                    $systemPrompt = "Eres un Asistente Virtual amable y profesional. Responde de forma clara y concisa.\n"
-                        . "Utiliza EXCLUSIVAMENTE la siguiente información para responder a las consultas del usuario:\n\n"
-                        . "{$ragContext}\n\n"
-                        . "Si la información solicitada no se encuentra en el contexto anterior, responde cordialmente que no tienes esa información y que pronto un humano se pondrá en contacto.";
+                    $systemMessage = [
+                        'role' => 'system',
+                        'content' => "Usa la siguiente información para responder a las consultas del usuario. \n\nCONTEXTO:\n$context\n\nINSTRUCCIONES:\n- Responde SOLO basándote en el contexto proporcionado.\n- Si la respuesta no está en el contexto, indica amablemente que no tienes esa información y sugiere contactar a: gabriela@mooxdata.xyz.\n- Sé profesional, conciso y amable con no mas de 150 caracteres."
+                    ];
 
                     // Historial
                     $history = BorealWhatsAppMessage::where('phone_number', $userPhone)
@@ -120,7 +121,7 @@ class BorealWhatsAppWebhookController extends Controller
                         })->toArray();
 
                     $fakedRequest = new Request(['messages' => $history]);
-                    $response = $this->llm->chat(['role' => 'system', 'content' => $systemPrompt], $fakedRequest);
+                    $response = $this->llm->chat($systemMessage, $fakedRequest);
                     $botReply = $response->getData()->reply;
 
                     $this->sendWhatsAppMessage($userPhone, $botReply);
