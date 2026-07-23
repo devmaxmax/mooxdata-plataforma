@@ -24,6 +24,19 @@ Route::post('/chat', [IndexController::class, 'getChat'])->name('index.getChat')
 Route::post('/send_mail', [IndexController::class, 'sendMail']);
 Route::get('/demo/panel-atencion-whatsapp', [IndexController::class, 'panelDemoWhatsapp'])->name('index.panelDemoWhatsapp');
 
+Route::get('/privacidad', function () {
+    $text = "Política de Privacidad de Mooxdata\n\n"
+          . "El uso de nuestros bots y servicios de integración con WhatsApp está sujeto a las siguientes condiciones de privacidad:\n\n"
+          . "1. Recopilación de Datos: Los mensajes enviados a través de WhatsApp hacia nuestros bots son procesados para brindar respuestas automáticas o ser derivados a un operador.\n"
+          . "2. Uso de la Información: La información recopilada se utiliza exclusivamente para el funcionamiento del servicio y la atención al cliente. No compartimos datos personales con terceros no autorizados.\n"
+          . "3. Responsabilidad: Mooxdata proporciona la infraestructura tecnológica para la comunicación. Sin embargo, no nos hacemos responsables por el mal uso del servicio, contenido inapropiado enviado por los usuarios, ni por acciones que violen los términos de servicio de WhatsApp o leyes aplicables.\n"
+          . "4. Seguridad: Implementamos medidas de seguridad para proteger la información de accesos no autorizados.\n\n"
+          . "Al interactuar con nuestros bots, aceptas estas condiciones.";
+
+    return response($text, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+});
+
+
 Route::prefix('boreal')->name('boreal.')->group(function () {
     Route::get('/', [\App\Http\Controllers\BorealController::class, 'showLogin'])->name('login');
     Route::post('/login', [\App\Http\Controllers\BorealController::class, 'login'])->name('login.post');
