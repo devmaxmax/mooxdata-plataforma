@@ -3,11 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\BorealWhatsAppMessage;
+use App\Models\RagData;
+use App\Services\llm\Deepseek;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class BorealWhatsAppWebhookController extends Controller
 {
+    private $llm;
+
+    public function __construct(Deepseek $llm)
+    {
+        $this->llm = $llm;
+    }
+
     public function handleWebhook(Request $request)
     {
         Log::info("Boreal Webhook hit: " . $request->method() . " - " . $request->fullUrl());
@@ -78,11 +89,86 @@ class BorealWhatsAppWebhookController extends Controller
                     'wp_id' => $wpId,
                     'status' => 'received'
                 ]);
+
+                // Check suspension
+                if (Cache::has("boreal_bot_suspended_{$userPhone}")) {
+                    Log::info("Boreal bot is suspended for user {$userPhone}. Skipping LLM reply.");
+                    return response('EVENT_RECEIVED', 200);
+                }
+
+                try {
+                    // Fetch RagData
+                    $ragData = RagData::where('is_active', 1)->get();
+                    $ragContext = "";
+                    foreach ($ragData as $rag) {
+                        $ragContext .= "Tema: {$rag->topic}\nContenido: {$rag->content}\n\n";
+                    }
+
+                    $systemPrompt = "Eres un Asistente Virtual amable y profesional. Responde de forma clara y concisa.\n"
+                        . "Utiliza EXCLUSIVAMENTE la siguiente información para responder a las consultas del usuario:\n\n"
+                        . "{$ragContext}\n\n"
+                        . "Si la información solicitada no se encuentra en el contexto anterior, responde cordialmente que no tienes esa información y que pronto un humano se pondrá en contacto.";
+
+                    // Historial
+                    $history = BorealWhatsAppMessage::where('phone_number', $userPhone)
+                        ->orderBy('created_at', 'desc')
+                        ->take(6)
+                        ->get()
+                        ->reverse()
+                        ->map(function($m) {
+                            return ['role' => $m->type === 'incoming' ? 'user' : 'assistant', 'content' => $m->message];
+                        })->toArray();
+
+                    $fakedRequest = new Request(['messages' => $history]);
+                    $response = $this->llm->chat(['role' => 'system', 'content' => $systemPrompt], $fakedRequest);
+                    $botReply = $response->getData()->reply;
+
+                    $this->sendWhatsAppMessage($userPhone, $botReply);
+                    $this->storeOutgoing($userPhone, $botReply);
+                } catch (\Exception $e) {
+                    Log::error("Boreal LLM Error: " . $e->getMessage());
+                }
             }
 
             return response('EVENT_RECEIVED', 200);
         }
 
         return response('Bad Request', 400);
+    }
+
+    private function storeOutgoing($phone, $msg) {
+        BorealWhatsAppMessage::create([
+            'phone_number' => $phone,
+            'message' => $msg,
+            'type' => 'outgoing',
+            'status' => 'sent'
+        ]);
+    }
+
+    private function sendWhatsAppMessage($to, $messageBody)
+    {
+        $token = env('BOREAL_META_WHATSAPP_TOKEN', env('META_WHATSAPP_TOKEN'));
+        $phoneId = env('BOREAL_META_PHONE_ID', env('META_PHONE_ID'));
+        $version = 'v21.0'; 
+        
+        $url = "https://graph.facebook.com/{$version}/{$phoneId}/messages";
+
+        try {
+            $response = Http::withToken($token)->post($url, [
+                'messaging_product' => 'whatsapp',
+                'to' => $to,
+                'type' => 'text',
+                'text' => ['body' => $messageBody]
+            ]);
+
+            Log::info("Boreal Meta API Response: " . $response->status() . " - " . $response->body());
+
+            if ($response->failed()) {
+                Log::error('Error enviando mensaje a Meta (Boreal): ' . $response->body());
+                $this->storeOutgoing($to, "SYSTEM ERROR (Not Sent to user): " . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error('Excepción enviando WhatsApp Boreal: ' . $e->getMessage());
+        }
     }
 }
